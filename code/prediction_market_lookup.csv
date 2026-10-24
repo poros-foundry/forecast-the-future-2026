@@ -1,0 +1,15 @@
+question_id,question,kalshi_ticker,polymarket_slug,note
+A1,Texas Senate,SENATETX-26-D,will-the-democrats-win-the-texas-senate-race-in-2026,
+A2,Maine Senate,SENATEME-26-D,will-the-democrats-win-the-maine-senate-race-in-2026,
+A3,Michigan Senate,SENATEMI-26-D,will-the-democrats-win-the-michigan-senate-race-in-2026,
+A4,Ohio Senate (special election),SENATEOHS-26-D,will-the-democrats-win-the-ohio-senate-race-in-2026,
+A5,Iowa Senate,SENATEIA-26-D,will-the-democrats-win-the-iowa-senate-race-in-2026,
+A6,Kansas Senate,SENATEKS-26-D,will-the-democrats-win-the-kansas-senate-race-in-2026,
+A7,South Carolina Senate,SENATESC-26-D,will-the-democrats-win-the-south-carolina-senate-race-in-2026,
+A8,Alaska Senate,SENATEAK-26-D,will-mary-peltola-win-the-alaska-senate-race-in-2026,Polymarket lists this race by candidate; Mary Peltola is the Democrat
+A9,FL-22,KXHOUSERACE-FL22-26-D,will-the-democratic-party-win-the-fl-22-house-seat,
+A10,ME-02,HOUSEME2-26-D,will-the-democratic-party-win-the-me-01-house-seat-20260720160014016,Polymarket's slug says me-01 but the market is ME-02 (Dunlap v LePage)
+A11,MT-01,HOUSEMT1-26-D,will-the-democratic-party-win-the-mt-01-house-seat,
+A12,VA-01,HOUSEVA1-26-D,will-the-democratic-party-win-the-va-01-house-seat,
+A13,House control,CONTROLH-2026-D,will-the-democratic-party-control-the-house-after-the-2026-midterm-elections,
+A14,Senate control,CONTROLS-2026-D,will-the-democratic-party-control-the-senate-after-the-2026-midterm-elections,

@@ -2,3 +2,6 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Databento-derived data: keep out of git until Databento confirms we can share it
+data/past_election_moves_5min.csv
