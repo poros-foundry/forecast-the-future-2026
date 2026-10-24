@@ -1,12 +1,33 @@
 # forecast-the-future-2026
 US Midterm Election Night Edition: battleground races and the post-election market reaction
 
-This repo is the participant data kit. It has two parts:
+This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-MM-DD`.
 
-- **`data/`**: ready-made files you can use straight away.
-- **`code/`**: scripts that download the same public data fresh, so you can update it yourself. None of them need an API key.
+## What we provide
 
-All times are GMT (UTC). Dates are `YYYY-MM-DD`.
+**Data (`data/`)**: ready-made files you can use straight away.
+
+| File | What it is | Made by |
+|---|---|---|
+| `kalshi_odds_hourly.csv` | Hourly Kalshi odds for A1–A14, with bid, ask, volume and open interest | `fetch_kalshi.py` |
+| `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A14 | `fetch_polymarket.py` |
+| `government_bond_yields_daily.csv` | US 2-year, US 10-year and UK 10-year yields since 2016 (B5–B7) | `fetch_treasury_yields.py` |
+| `yahoo_daily_closes.csv` | Daily closes since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
+| `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
+
+**Code (`code/`)**: scripts that download the same public data fresh, so you can update it yourself. None of them need an API key.
+
+| File | What it does |
+|---|---|
+| `fetch_kalshi.py` | Downloads hourly Kalshi odds for A1–A14 |
+| `fetch_polymarket.py` | Downloads hourly Polymarket odds for A1–A14 |
+| `fetch_treasury_yields.py` | Downloads US Treasury yields from FRED and the UK gilt yield from the Bank of England |
+| `fetch_yahoo_data.py` | Downloads daily closes from Yahoo Finance |
+| `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
+
+**Guide ([`GUIDE.md`](GUIDE.md))**: other free data sources, if you want to look further.
+
+**`requirements.txt`**: the Python packages the scripts need.
 
 ## Quick start
 
@@ -25,15 +46,7 @@ python code/fetch_yahoo_data.py
 
 Each script takes `--start YYYY-MM-DD`, and the odds scripts also take `--end`. Run any script with `--help` for details.
 
-## What's in `data/`
-
-| File | What it is | Made by |
-|---|---|---|
-| `kalshi_odds_hourly.csv` | Hourly Kalshi odds for A1–A14 | `fetch_kalshi.py` |
-| `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A14 | `fetch_polymarket.py` |
-| `government_bond_yields_daily.csv` | US 2-year, US 10-year and UK 10-year yields since 2016 (B5–B7) | `fetch_treasury_yields.py` |
-| `yahoo_daily_closes.csv` | Daily closes since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
-| `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
+## Data details
 
 ### Prediction market odds
 
