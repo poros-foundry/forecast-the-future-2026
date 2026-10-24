@@ -1,6 +1,6 @@
-# Guide: other data sources
+# Additional guide: other data sources
 
-The kit covers the data the questions are scored on. If you want to look further, the free sources below are a starting point. They are listed for convenience, not as recommendations, and you can use any other public source.
+We list these sources only in case you are looking for somewhere to find additional data. You don't need to use any of them. They are not recommendations, and you can use any other source you like.
 
 ## Macro and interest rates
 

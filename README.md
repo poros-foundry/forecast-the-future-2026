@@ -3,6 +3,8 @@ US Midterm Election Night Edition: battleground races and the post-election mark
 
 This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-MM-DD`.
 
+**You are not expected to use any of the data given here, and there are no rules on what you use.** It is provided only to save you time. Your forecasts are evaluated against the real outcomes and compared with the prediction market benchmark.
+
 ## What we provide
 
 **Data (`data/`)**: ready-made files you can use straight away.
@@ -25,7 +27,7 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `fetch_yahoo_data.py` | Downloads daily closes from Yahoo Finance |
 | `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
 
-**Guide ([`GUIDE.md`](GUIDE.md))**: other free data sources, if you want to look further.
+**Additional guide ([`additional_guide.md`](additional_guide.md))**: other free data sources, in case you are looking for somewhere to find more data.
 
 **`requirements.txt`**: the Python packages the scripts need.
 
