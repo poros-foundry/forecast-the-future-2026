@@ -37,11 +37,17 @@ Each script takes `--start YYYY-MM-DD`, and the odds scripts also take `--end`. 
 
 ### Prediction market odds
 
-Columns: `timestamp_utc, question_id, market_id, yes_mid` (Kalshi) or `yes_price` (Polymarket), `filled`.
+Columns:
+- Kalshi: `timestamp_utc, question_id, market_id, yes_bid, yes_ask, yes_mid, spread, volume, open_interest`
+- Polymarket: `timestamp_utc, question_id, market_id, yes_price, filled`
 
+Notes:
 - Every market is the **Democratic side**, so the value is the market's probability that the Democrat wins (0.63 = 63%). This matches how Part A questions are asked.
-- Kalshi's `yes_mid` is the average of the best yes bid and best yes ask at the end of each hour. Polymarket's `yes_price` is its hourly price for the "Yes" outcome.
-- `filled = 1` means the platform reported no new price that hour, so the previous value was carried forward.
+- Kalshi's `yes_bid` and `yes_ask` are the best yes bid and best yes ask at the end of each hour. `yes_mid` is their average and `spread` is `yes_ask - yes_bid`.
+- A wide `spread` means a thin market, where the mid is less reliable. Spreads are usually 1 cent (0.01), but in quiet overnight hours they can briefly reach 10 cents or more. The mid can then jump even though nobody's view has changed.
+- Kalshi's `volume` is the number of contracts traded in the hour, and `open_interest` is the number held at the end of it. Each contract pays $1. Busy markets have more money behind their prices: the Senate races and control markets trade every hour, while FL-22 and ME-02 trade in about 1 hour in 5.
+- Kalshi only reports hours in which something changed. For the other hours, the bid, ask and open interest carry over from the previous hour and `volume` is 0.
+- Polymarket's `yes_price` is its hourly price for the "Yes" outcome. Polymarket's history has no bid, ask or volume. `filled = 1` means Polymarket reported no price that hour, so the previous value was carried forward.
 - The two platforms usually agree within 1–2 percentage points. The event's benchmark for each question is the average of the two.
 - The markets used for each question are listed in `code/prediction_market_lookup.csv`.
 

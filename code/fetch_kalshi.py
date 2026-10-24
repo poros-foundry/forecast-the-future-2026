@@ -3,12 +3,17 @@
 Reads code/prediction_market_lookup.csv and writes data/kalshi_odds_hourly.csv.
 No API key needed.
 
-yes_mid is the average of the best yes bid and best yes ask at the end of each
-hour, as a probability (0.63 = 63%). Every market in the lookup is the
-Democratic side, so yes_mid is the market's probability that the Democrat wins.
+yes_bid and yes_ask are the best yes bid and best yes ask at the end of each
+hour, as probabilities (0.63 = 63%). yes_mid is their average and spread is
+yes_ask - yes_bid. Every market in the lookup is the Democratic side, so yes_mid
+is the market's probability that the Democrat wins. A wide spread means a thin
+market, where the mid is less reliable.
 
-Kalshi only returns hours in which something changed. Missing hours are filled
-with the previous value and marked filled=1.
+volume is the number of contracts traded in the hour. open_interest is the
+number of contracts held at the end of the hour. Each contract pays $1.
+
+Kalshi only returns hours in which something changed. For the other hours the
+bid, ask and open interest carry over from the previous hour and volume is 0.
 
 Usage:
     python code/fetch_kalshi.py
@@ -46,7 +51,11 @@ def close_price(side):
     return float(value) if value not in (None, "") else None
 
 
-def hourly_mids(ticker, start, end):
+def number(value):
+    return float(value) if value not in (None, "") else None
+
+
+def hourly_quotes(ticker, start, end):
     series = series_for(ticker)
     points = {}
     t0 = start
@@ -55,23 +64,32 @@ def hourly_mids(ticker, start, end):
         data = get(f"/series/{series}/markets/{ticker}/candlesticks",
                    start_ts=t0, end_ts=t1, period_interval=60)
         for c in data.get("candlesticks") or []:
-            bid, ask = close_price(c.get("yes_bid")), close_price(c.get("yes_ask"))
-            if bid is not None and ask is not None:
-                points[c["end_period_ts"]] = (bid + ask) / 2
+            points[c["end_period_ts"]] = (
+                close_price(c.get("yes_bid")), close_price(c.get("yes_ask")),
+                number(c.get("volume_fp")), number(c.get("open_interest_fp")),
+            )
         t0 = t1
     return points
 
 
 def fill_hourly(points, end):
-    s = pd.Series(points).sort_index()
-    s.index = pd.to_datetime(s.index, unit="s", utc=True).floor("h")
-    s = s[~s.index.duplicated(keep="last")]
-    hours = pd.date_range(s.index[0], pd.Timestamp(end, unit="s", tz="UTC").floor("h"), freq="h")
-    s = s.reindex(hours)
+    q = pd.DataFrame.from_dict(points, orient="index",
+                               columns=["yes_bid", "yes_ask", "volume", "open_interest"]).sort_index()
+    q.index = pd.to_datetime(q.index, unit="s", utc=True).floor("h")
+    q = q[~q.index.duplicated(keep="last")]
+    hours = pd.date_range(q.index[0], pd.Timestamp(end, unit="s", tz="UTC").floor("h"), freq="h")
+    q = q.reindex(hours)
+    q["volume"] = q.volume.fillna(0)
+    q[["yes_bid", "yes_ask", "open_interest"]] = q[["yes_bid", "yes_ask", "open_interest"]].ffill()
+    q = q.dropna(subset=["yes_bid", "yes_ask"])
     return pd.DataFrame({
-        "timestamp_utc": hours.strftime("%Y-%m-%d %H:%M"),
-        "yes_mid": s.ffill().round(4).values,
-        "filled": s.isna().astype(int).values,
+        "timestamp_utc": q.index.strftime("%Y-%m-%d %H:%M"),
+        "yes_bid": q.yes_bid.round(4).values,
+        "yes_ask": q.yes_ask.round(4).values,
+        "yes_mid": ((q.yes_bid + q.yes_ask) / 2).round(4).values,
+        "spread": (q.yes_ask - q.yes_bid).round(4).values,
+        "volume": q.volume.round(2).values,
+        "open_interest": q.open_interest.round(2).values,
     })
 
 
@@ -92,7 +110,7 @@ def main():
     lookup = pd.read_csv(LOOKUP, dtype=str).dropna(subset=["kalshi_ticker"])
     frames = []
     for q in lookup.itertuples():
-        points = hourly_mids(q.kalshi_ticker, start, end)
+        points = hourly_quotes(q.kalshi_ticker, start, end)
         if not points:
             print(f"{q.question_id} {q.kalshi_ticker}: no data in this period")
             continue
@@ -100,7 +118,8 @@ def main():
         df.insert(1, "question_id", q.question_id)
         df.insert(2, "market_id", q.kalshi_ticker)
         frames.append(df)
-        print(f"{q.question_id} {q.kalshi_ticker}: {len(df)} hours, latest {df.yes_mid.iloc[-1]:.3f}")
+        last = df.iloc[-1]
+        print(f"{q.question_id} {q.kalshi_ticker}: {len(df)} hours, latest bid {last.yes_bid:.3f} ask {last.yes_ask:.3f}")
 
     OUT.parent.mkdir(exist_ok=True)
     pd.concat(frames).to_csv(OUT, index=False)
