@@ -17,7 +17,8 @@ We list these sources only in case you are looking for somewhere to find additio
 
 - **[MIT Election Data and Science Lab](https://electionlab.mit.edu/data)**: past US election results by race.
 - **[FEC bulk data](https://www.fec.gov/data/browse-data/?tab=bulk-data)**: campaign finance filings. Bulk downloads need no key; the API needs a free key.
-- **Polling**: [RealClearPolling](https://www.realclearpolling.com/), [Silver Bulletin](https://www.natesilver.net/).
-- **Race ratings**: [Cook Political Report](https://www.cookpolitical.com/), [Sabato's Crystal Ball](https://centerforpolitics.org/crystalball/), [Inside Elections](https://insideelections.com/).
+- **[US House election statistics](https://history.house.gov/Institution/Election-Statistics/Election-Statistics/)**: official results of US House and Senate elections since 1920, from the Clerk of the House.
+- **[State election offices](https://www.eac.gov/voters/register-and-vote-in-your-state)**: links to each state's election office, which publishes candidate lists and official results. Directory from the US Election Assistance Commission.
+- **[US Census Bureau data](https://data.census.gov/)**: population and demographic data by state and congressional district.
 
-Some of these sites need a subscription for part of their content. Check each source's terms before sharing its data.
+Check each source's terms before sharing its data.
