@@ -8,8 +8,8 @@ yes_price is Polymarket's hourly price for the "Yes" outcome, as a probability
 the market's probability that the Democrat wins.
 
 Polymarket rejects requests covering more than about 15 days, so the history is
-downloaded in 14-day windows. Missing hours are filled with the previous value
-and marked filled=1.
+downloaded in 14-day windows. Hours with no price carry over the previous
+hour's value.
 
 Usage:
     python code/fetch_polymarket.py
@@ -69,7 +69,6 @@ def fill_hourly(points, end):
     return pd.DataFrame({
         "timestamp_utc": hours.strftime("%Y-%m-%d %H:%M"),
         "yes_price": s.ffill().round(4).values,
-        "filled": s.isna().astype(int).values,
     })
 
 
