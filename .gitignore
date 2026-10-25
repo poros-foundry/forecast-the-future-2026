@@ -5,3 +5,8 @@ __pycache__/
 
 # Databento-derived data: keep out of git until Databento confirms we can share it
 data/past_election_moves_5min.csv
+
+# Intraday Yahoo downloads: participants make these themselves
+data/yahoo_prices_1h.csv
+data/yahoo_prices_5m.csv
+data/yahoo_prices_1m.csv

@@ -14,7 +14,7 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `kalshi_odds_hourly.csv` | Hourly Kalshi odds for A1–A14, with bid, ask, volume and open interest | `fetch_kalshi.py` |
 | `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A14 | `fetch_polymarket.py` |
 | `government_bond_yields_daily.csv` | US 2-year, US 10-year and UK 10-year yields since 2016 (B5–B7) | `fetch_treasury_yields.py` |
-| `yahoo_daily_closes.csv` | Daily closes since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
+| `yahoo_prices_daily.csv` | Daily open, high, low, close, adjusted close and volume since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
 | `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
 
 **Code (`code/`)**: scripts that download the same public data fresh, so you can update it yourself. None of them need an API key.
@@ -24,7 +24,7 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `fetch_kalshi.py` | Downloads hourly Kalshi odds for A1–A14 |
 | `fetch_polymarket.py` | Downloads hourly Polymarket odds for A1–A14 |
 | `fetch_treasury_yields.py` | Downloads US Treasury yields from FRED and the UK gilt yield from the Bank of England |
-| `fetch_yahoo_data.py` | Downloads daily closes from Yahoo Finance |
+| `fetch_yahoo_data.py` | Downloads daily or intraday prices from Yahoo Finance |
 | `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
 
 **Additional guide ([`additional_guide.md`](additional_guide.md))**: other free data sources, in case you are looking for somewhere to find more data.
@@ -76,18 +76,31 @@ Columns: `date, us_2y, us_10y, uk_10y`, all in %.
 - US and UK holidays differ, so a blank means that market was closed.
 - Both sources publish with a delay of a day or more, so the latest day may be missing.
 
-### Yahoo daily closes
+### Yahoo prices
 
-Columns: `date, spy, iwm, nvda, vix, gold_front_month, wti_front_month, henry_hub_front_month`.
+Columns: `date, instrument, ticker, open, high, low, close, adj_close, volume`, one row per date and instrument.
 
+- `close` is the actual closing price, adjusted only for stock splits. `adj_close` is also adjusted for dividends, so it differs from `close` for SPY, IWM and NVDA and is the one to use for total returns. For futures and VIX the two are the same.
+- Because of splits, `close` is not always the price shown on that day. NVDA, for example, has split several times since 2016.
 - Gold, WTI and Henry Hub are Yahoo's **front-month** futures. They switch to the next contract as each one expires, so the change on a switch day is not a real move. Part B scores B8–B10 on the **December 2026** contracts.
-- Use these for past daily moves, for example around previous election days.
+- VIX has no volume.
+
+**Intraday data.** Yahoo also has intraday prices for recent periods only. Run the script with `--interval`:
+
+| Command | Bar size | How far back |
+|---|---|---|
+| `python code/fetch_yahoo_data.py --interval 1h` | 1 hour | 730 days (includes the 2024 election until early November 2026) |
+| `python code/fetch_yahoo_data.py --interval 5m` | 5 minutes | 60 days |
+| `python code/fetch_yahoo_data.py --interval 1m` | 1 minute | 30 days |
+
+Intraday files are saved as `data/yahoo_prices_<interval>.csv`, with times in UTC, and include pre-market and after-hours trading. US stocks don't trade between about 01:00 and 09:00 GMT, so they have no prices overnight.
 
 ### Past election moves
 
 Columns: `election, instrument, contract, time_gmt, minutes_from_reference, change_pct, approx_yield_change_bp`.
 
-- Futures: S&P 500 (ES), 2-year Treasury (ZT), 10-year Treasury (ZN), gold (GC), WTI (CL) and Henry Hub (NG), in 5-minute steps.
+- Futures: S&P 500 (ES), Russell 2000 (RTY), Nasdaq 100 (NQ), 2-year Treasury (ZT), 10-year Treasury (ZN), gold (GC), WTI (CL) and Henry Hub (NG), in 5-minute steps. Russell 2000 futures start in 2018.
+- There is no overnight data for NVDA, VIX or the UK gilt yield.
 - Elections: 2016, 2018, 2020, 2022 and 2024. Each window runs from 00:00 GMT the day before election day to 24:00 GMT the day after.
 - `change_pct` is the % change from 21:00 GMT on election day. Each election uses that year's December contract.
 - `approx_yield_change_bp` is a rough conversion for ZT and ZN only. Treasury futures **rise when yields fall**.
