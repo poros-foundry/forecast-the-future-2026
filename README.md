@@ -17,7 +17,7 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `yahoo_prices_daily.csv` | Daily open, high, low, close, adjusted close and volume since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
 | `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
 
-The official VIX history (daily open, high, low and close since 1990) is on [Cboe's VIX historical data page](https://www.cboe.com/tradable_products/vix/vix_historical_data/), as a CSV at `https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`. The daily close is also on FRED as `VIXCLS`, which B4 is scored on.
+The official VIX history (daily open, high, low and close since 1990) is on [Cboe's VIX historical data page](https://www.cboe.com/tradable_products/vix/vix_historical_data/), as a CSV at `https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`. B4 is scored on Cboe's official close. FRED republishes the same close as `VIXCLS`.
 
 **Code (`code/`)**: scripts that download the same public data fresh, so you can update it yourself. None of them need an API key.
 
@@ -25,11 +25,11 @@ The official VIX history (daily open, high, low and close since 1990) is on [Cbo
 |---|---|
 | `fetch_kalshi.py` | Downloads hourly Kalshi odds for A1–A14 |
 | `fetch_polymarket.py` | Downloads hourly Polymarket odds for A1–A14 |
-| `fetch_treasury_yields.py` | Downloads US Treasury yields from FRED and the UK gilt yield from the Bank of England |
+| `fetch_treasury_yields.py` | Downloads US yields from the US Treasury and the UK gilt yield from the Bank of England |
 | `fetch_yahoo_data.py` | Downloads daily or intraday prices from Yahoo Finance |
 | `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
 
-**AI-only track ([`ai_only/`](ai_only/README.md))**: a small helper for model calls and submissions. AI-only teams start with [`ai_only/README.md`](ai_only/README.md).
+**AI-only track ([`ai_only/`](ai_only/README.md))**: more instructions for AI-only teams, in [`ai_only/README.md`](ai_only/README.md). This folder is only relevant to the AI-only track. It only covers how to call models through OpenRouter and how to submit, and contains no additional information about the questions.
 
 **Additional guide ([`additional_guide.md`](additional_guide.md))**: other free data sources, in case you are looking for somewhere to find more data.
 
@@ -76,9 +76,9 @@ Notes:
 
 Columns: `date, us_2y, us_10y, uk_10y`, all in %.
 
-- US: FRED series `DGS2` and `DGS10`. UK: Bank of England series `IUDMNPY` (10-year nominal par yield). These are the sources used to score B5–B7.
+- US: US Treasury daily par yield curve rates (2-year and 10-year). UK: Bank of England series `IUDMNPY` (10-year nominal par yield). These are the sources used to score B5–B7. FRED republishes the US rates as `DGS2` and `DGS10`.
 - US and UK holidays differ, so a blank means that market was closed.
-- Both sources publish with a delay of a day or more, so the latest day may be missing.
+- The US Treasury usually publishes a day's rates the same evening. The Bank of England usually publishes on the next business day, so the latest UK value may be missing.
 
 ### Yahoo prices
 
@@ -112,6 +112,6 @@ Columns: `election, instrument, contract, time_gmt, minutes_from_reference, chan
 
 ## Sources
 
-Kalshi and Polymarket public market data; FRED (series `DGS2`, `DGS10`); Yahoo Finance. Contains Bank of England data.
+Kalshi and Polymarket public market data; US Treasury; Cboe; Yahoo Finance. Contains Bank of England data.
 
 *Data in this kit is provided for this event only. Please don't share or redistribute it.*
