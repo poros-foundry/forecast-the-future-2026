@@ -10,3 +10,7 @@ data/past_election_moves_5min.csv
 data/yahoo_prices_1h.csv
 data/yahoo_prices_5m.csv
 data/yahoo_prices_1m.csv
+
+# AI-only submission backups and receipts, saved by ai_only/ftf.py
+answers/
+receipts/

@@ -1,0 +1,212 @@
+[
+  {
+    "id": "A1",
+    "part": "A",
+    "text": "Texas Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senatetx/texas-senate-race/senatetx-26",
+      "https://polymarket.com/event/texas-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A2",
+    "part": "A",
+    "text": "Maine Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senateme/maine-senate-race/senateme-26",
+      "https://polymarket.com/event/maine-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A3",
+    "part": "A",
+    "text": "Michigan Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senatemi/michigan-senate-race/senatemi-26",
+      "https://polymarket.com/event/michigan-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A4",
+    "part": "A",
+    "text": "Ohio Senate (special election): probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senateohs/special-senate-election-in-ohio/senateohs-26",
+      "https://polymarket.com/event/ohio-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A5",
+    "part": "A",
+    "text": "Iowa Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senateia/iowa-senate-race/senateia-26",
+      "https://polymarket.com/event/iowa-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A6",
+    "part": "A",
+    "text": "Kansas Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senateks/kansas-senate-race/senateks-26",
+      "https://polymarket.com/event/kansas-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A7",
+    "part": "A",
+    "text": "South Carolina Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senatesc/south-carolina-senate-race/senatesc-26",
+      "https://polymarket.com/event/south-carolina-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A8",
+    "part": "A",
+    "text": "Alaska Senate: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/senateak/alaska-senate-race/senateak-26",
+      "https://polymarket.com/event/alaska-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A9",
+    "part": "A",
+    "text": "FL-22: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/category/elections/house",
+      "https://polymarket.com/event/fl-22-house-election-winner"
+    ]
+  },
+  {
+    "id": "A10",
+    "part": "A",
+    "text": "ME-02: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/category/elections/house",
+      "https://polymarket.com/event/me-02-house-election-winner-20260720160226434"
+    ]
+  },
+  {
+    "id": "A11",
+    "part": "A",
+    "text": "MT-01: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/housemt1/house-mt-1/housemt1-26",
+      "https://polymarket.com/event/mt-01-house-election-winner"
+    ]
+  },
+  {
+    "id": "A12",
+    "part": "A",
+    "text": "VA-01: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/houseva1/house-va-1/houseva1-26",
+      "https://polymarket.com/event/va-01-house-election-winner"
+    ]
+  },
+  {
+    "id": "A13",
+    "part": "A",
+    "text": "House control: probability Democrats win a majority (218+ seats)",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/category/elections/midterms",
+      "https://polymarket.com/event/which-party-will-win-the-house-in-2026"
+    ]
+  },
+  {
+    "id": "A14",
+    "part": "A",
+    "text": "Senate control: probability Democrats win a majority (51+ seats, as the VP breaks ties for Republicans)",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/controls/senate-winner/controls-2026",
+      "https://polymarket.com/event/which-party-will-win-the-senate-in-2026"
+    ]
+  },
+  {
+    "id": "B1",
+    "part": "B",
+    "text": "S&P 500 (SPY ETF): move from the 3 Nov close to the 4 Nov close (official close (16:00 New York = 21:00 GMT))",
+    "unit": "%",
+    "market_links": []
+  },
+  {
+    "id": "B2",
+    "part": "B",
+    "text": "Russell 2000 (IWM ETF): move from the 3 Nov close to the 4 Nov close (official close)",
+    "unit": "%",
+    "market_links": []
+  },
+  {
+    "id": "B3",
+    "part": "B",
+    "text": "NVIDIA (NVDA): move from the 3 Nov close to the 4 Nov close (official close)",
+    "unit": "%",
+    "market_links": []
+  },
+  {
+    "id": "B4",
+    "part": "B",
+    "text": "VIX index: move from the 3 Nov close to the 4 Nov close (Cboe official close)",
+    "unit": "points",
+    "market_links": []
+  },
+  {
+    "id": "B5",
+    "part": "B",
+    "text": "US 2-year Treasury yield: move from the 3 Nov close to the 4 Nov close (US Treasury daily par yield curve rate)",
+    "unit": "bp",
+    "market_links": []
+  },
+  {
+    "id": "B6",
+    "part": "B",
+    "text": "US 10-year Treasury yield: move from the 3 Nov close to the 4 Nov close (US Treasury daily par yield curve rate)",
+    "unit": "bp",
+    "market_links": []
+  },
+  {
+    "id": "B7",
+    "part": "B",
+    "text": "UK 10-year gilt yield: move from the 3 Nov close to the 4 Nov close (Bank of England 10-year nominal yield)",
+    "unit": "bp",
+    "market_links": []
+  },
+  {
+    "id": "B8",
+    "part": "B",
+    "text": "Gold futures (COMEX), December 2026: move from the 3 Nov close to the 4 Nov close (COMEX daily settlement)",
+    "unit": "%",
+    "market_links": []
+  },
+  {
+    "id": "B9",
+    "part": "B",
+    "text": "WTI crude oil futures, December 2026: move from the 3 Nov close to the 4 Nov close (NYMEX daily settlement)",
+    "unit": "%",
+    "market_links": []
+  },
+  {
+    "id": "B10",
+    "part": "B",
+    "text": "Henry Hub natural gas futures, December 2026: move from the 3 Nov close to the 4 Nov close (NYMEX daily settlement)",
+    "unit": "%",
+    "market_links": []
+  }
+]

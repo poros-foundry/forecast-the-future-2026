@@ -29,6 +29,8 @@ The official VIX history (daily open, high, low and close since 1990) is on [Cbo
 | `fetch_yahoo_data.py` | Downloads daily or intraday prices from Yahoo Finance |
 | `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
 
+**AI-only track ([`ai_only/`](ai_only/README.md))**: a small helper for model calls and submissions. AI-only teams start with [`ai_only/README.md`](ai_only/README.md).
+
 **Additional guide ([`additional_guide.md`](additional_guide.md))**: other free data sources, in case you are looking for somewhere to find more data.
 
 **`requirements.txt`**: the Python packages the scripts need.

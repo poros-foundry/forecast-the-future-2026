@@ -1,0 +1,169 @@
+"""Tests for ftf.py, with all network calls mocked. Run: python -m unittest ai_only/test_ftf.py"""
+import math
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ftf  # noqa: E402
+
+ENV = {"OPENROUTER_API_KEY": "test-key", "TEAM_ID": "team-test", "SUBMIT_CODE": "code-123"}
+
+
+def valid_answers():
+    answers = ftf.answers_template()
+    for q in answers:
+        answers[q] = 50 if q.startswith("A") else -1.5
+    return answers
+
+
+def fake_completion(text="42"):
+    response = mock.MagicMock()
+    response.choices[0].message.content = text
+    response.usage.total_tokens = 10
+    return response
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class AskTests(unittest.TestCase):
+    def setUp(self):
+        self.client = mock.MagicMock()
+        self.client.chat.completions.create.return_value = fake_completion("42")
+        patcher = mock.patch.object(ftf, "_openrouter", return_value=self.client)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_rejects_missing_or_invalid_role(self):
+        for role in (None, "", "forecaster"):
+            with self.assertRaises(ValueError):
+                ftf.ask("A1", role, "hi", "some/model", run=1)
+        self.client.chat.completions.create.assert_not_called()
+
+    def test_rejects_invalid_question_id(self):
+        with self.assertRaises(ValueError):
+            ftf.ask("A15", "research", "hi", "some/model", run=1)
+
+    def test_sends_user_session_and_trace(self):
+        reply = ftf.ask("A3", "final", "hi", "some/model", run=5, temperature=0)
+        self.assertEqual(reply, "42")
+        kwargs = self.client.chat.completions.create.call_args.kwargs
+        self.assertEqual(kwargs["model"], "some/model")
+        self.assertEqual(kwargs["messages"], [{"role": "user", "content": "hi"}])
+        self.assertEqual(kwargs["temperature"], 0)
+        body = kwargs["extra_body"]
+        self.assertEqual(body["user"], "team-test")
+        self.assertEqual(body["session_id"], "team-test-run-5")
+        self.assertEqual(body["trace"], {"trace_id": "team-test-run-5-A3", "trace_name": "A3",
+                                         "question": "A3", "role": "final"})
+        self.assertNotIn("plugins", body)
+
+    def test_online_adds_web_search(self):
+        ftf.ask("general", "research", "hi", "some/model", run=1, online=True)
+        body = self.client.chat.completions.create.call_args.kwargs["extra_body"]
+        self.assertEqual(body["plugins"], [{"id": "web"}])
+
+    def test_missing_team_id_gives_clear_error(self):
+        del os.environ["TEAM_ID"]
+        with self.assertRaisesRegex(RuntimeError, "TEAM_ID"):
+            ftf.ask("A1", "research", "hi", "some/model", run=1)
+
+
+class ValidateTests(unittest.TestCase):
+    def test_valid_answers_pass(self):
+        ftf.validate_answers(valid_answers())
+
+    def test_reports_missing_and_extra_ids(self):
+        answers = valid_answers()
+        del answers["A1"], answers["B10"]
+        answers["B11"] = 0
+        with self.assertRaises(ValueError) as e:
+            ftf.validate_answers(answers)
+        self.assertIn("missing: A1, B10", str(e.exception))
+        self.assertIn("not question IDs: B11", str(e.exception))
+
+    def test_reports_bad_values(self):
+        answers = valid_answers()
+        answers.update({"A1": 62.5, "A2": 0, "A3": 100, "A4": None, "A5": True,
+                        "B1": 26, "B4": -31, "B5": 101, "B6": math.nan, "B7": math.inf})
+        with self.assertRaises(ValueError) as e:
+            ftf.validate_answers(answers)
+        message = str(e.exception)
+        for q in ("A1", "A2", "A3", "A4", "A5", "B1", "B4", "B5", "B6", "B7"):
+            self.assertIn(f"{q}:", message)
+        for q in ("A6", "B2", "B8"):
+            self.assertNotIn(f"{q}:", message)
+
+    def test_limits_are_inclusive(self):
+        answers = valid_answers()
+        answers.update({"A1": 1, "A2": 99, "B1": -25, "B4": 30, "B5": -100})
+        ftf.validate_answers(answers)
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class SubmitTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        cwd = os.getcwd()
+        os.chdir(self.folder.name)
+        self.addCleanup(os.chdir, cwd)
+
+    def saved_csvs(self):
+        return list(Path("answers").glob("answers_*.csv"))
+
+    def test_saves_csv_before_sending_and_saves_receipt(self):
+        def post(url, json, timeout):
+            self.assertEqual(len(self.saved_csvs()), 1)  # backup exists before sending
+            self.assertEqual(json["run"], "team-test-run-1")
+            self.assertEqual(json["track"], "ai-only")
+            self.assertEqual(json["answers"], valid_answers())
+            response = mock.MagicMock(status_code=200)
+            response.json.return_value = {"submission_id": "s1", "received_at": "t", "hash": "h"}
+            return response
+
+        with mock.patch.object(ftf.requests, "post", side_effect=post) as post_mock:
+            receipt = ftf.submit(valid_answers(), run=1)
+        self.assertEqual(receipt["submission_id"], "s1")
+        self.assertEqual(post_mock.call_args.args[0], ftf.DEFAULT_SUBMIT_URL)
+        self.assertEqual(len(list(Path("receipts").glob("receipt_1_*.json"))), 1)
+
+    def test_test_mode_uses_test_address(self):
+        os.environ["FTF_TEST_MODE"] = "1"
+        response = mock.MagicMock(status_code=200)
+        response.json.return_value = {}
+        with mock.patch.object(ftf.requests, "post", return_value=response) as post_mock:
+            ftf.submit(valid_answers(), run=1)
+        self.assertEqual(post_mock.call_args.args[0], ftf.DEFAULT_SUBMIT_URL + "-test")
+
+    def test_unreachable_server_keeps_answers(self):
+        with mock.patch.object(ftf.requests, "post", side_effect=requests.ConnectionError()):
+            result = ftf.submit(valid_answers(), run=2)
+        self.assertIn("error", result)
+        self.assertEqual(len(self.saved_csvs()), 1)
+        lines = self.saved_csvs()[0].read_text(encoding="utf-8").splitlines()
+        self.assertEqual(lines[0], "id,value")
+        self.assertEqual(len(lines), 25)
+
+    def test_rejected_submission_keeps_answers(self):
+        response = mock.MagicMock(status_code=400, text="bad code")
+        with mock.patch.object(ftf.requests, "post", return_value=response):
+            result = ftf.submit(valid_answers(), run=3)
+        self.assertEqual(result["status"], 400)
+        self.assertEqual(len(self.saved_csvs()), 1)
+
+    def test_invalid_answers_are_not_sent(self):
+        answers = valid_answers()
+        answers["A1"] = 150
+        with mock.patch.object(ftf.requests, "post") as post_mock:
+            with self.assertRaises(ValueError):
+                ftf.submit(answers, run=4)
+        post_mock.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()
