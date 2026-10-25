@@ -20,5 +20,3 @@ We list these sources only in case you are looking for somewhere to find additio
 - **[US House election statistics](https://history.house.gov/Institution/Election-Statistics/Election-Statistics/)**: official results of US House and Senate elections since 1920, from the Clerk of the House.
 - **[State election offices](https://www.eac.gov/voters/register-and-vote-in-your-state)**: links to each state's election office, which publishes candidate lists and official results. Directory from the US Election Assistance Commission.
 - **[US Census Bureau data](https://data.census.gov/)**: population and demographic data by state and congressional district.
-
-Check each source's terms before sharing its data.
