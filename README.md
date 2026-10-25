@@ -17,6 +17,8 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `yahoo_prices_daily.csv` | Daily open, high, low, close, adjusted close and volume since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
 | `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
 
+The official VIX history (daily open, high, low and close since 1990) is on [Cboe's VIX historical data page](https://www.cboe.com/tradable_products/vix/vix_historical_data/), as a CSV at `https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`. The daily close is also on FRED as `VIXCLS`, which B4 is scored on.
+
 **Code (`code/`)**: scripts that download the same public data fresh, so you can update it yourself. None of them need an API key.
 
 | File | What it does |
@@ -99,7 +101,7 @@ Intraday files are saved as `data/yahoo_prices_<interval>.csv`, with times in UT
 
 Columns: `election, instrument, contract, time_gmt, minutes_from_reference, change_pct, approx_yield_change_bp`.
 
-- Futures: S&P 500 (ES), Russell 2000 (RTY), Nasdaq 100 (NQ), 2-year Treasury (ZT), 10-year Treasury (ZN), gold (GC), WTI (CL) and Henry Hub (NG), in 5-minute steps. Russell 2000 futures start in 2018.
+- Futures: S&P 500 (ES), Russell 2000 (RTY), 2-year Treasury (ZT), 10-year Treasury (ZN), gold (GC), WTI (CL) and Henry Hub (NG), in 5-minute steps. Russell 2000 futures start in 2018.
 - There is no overnight data for NVDA, VIX or the UK gilt yield.
 - Elections: 2016, 2018, 2020, 2022 and 2024. Each window runs from 00:00 GMT the day before election day to 24:00 GMT the day after.
 - `change_pct` is the % change from 21:00 GMT on election day. Each election uses that year's December contract.
