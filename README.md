@@ -33,6 +33,8 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 
 ## Quick start
 
+You need Python 3.11 or later.
+
 ```bash
 pip install -r requirements.txt
 python code/fetch_kalshi.py
