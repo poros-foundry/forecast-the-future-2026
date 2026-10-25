@@ -112,6 +112,9 @@ class SubmitTests(unittest.TestCase):
         cwd = os.getcwd()
         os.chdir(self.folder.name)
         self.addCleanup(os.chdir, cwd)
+        sleep = mock.patch.object(ftf.time, "sleep")
+        self.sleep = sleep.start()
+        self.addCleanup(sleep.stop)
 
     def saved_csvs(self):
         return list(Path("answers").glob("answers_*.csv"))
@@ -140,21 +143,50 @@ class SubmitTests(unittest.TestCase):
             ftf.submit(valid_answers(), run=1)
         self.assertEqual(post_mock.call_args.args[0], ftf.DEFAULT_SUBMIT_URL + "-test")
 
-    def test_unreachable_server_keeps_answers(self):
-        with mock.patch.object(ftf.requests, "post", side_effect=requests.ConnectionError()):
+    def test_unreachable_server_retries_then_keeps_answers(self):
+        with mock.patch.object(ftf.requests, "post", side_effect=requests.ConnectionError()) as post_mock:
             result = ftf.submit(valid_answers(), run=2)
         self.assertIn("error", result)
+        self.assertEqual(post_mock.call_count, 3)
+        self.assertEqual([c.args[0] for c in self.sleep.call_args_list], list(ftf.RETRY_WAITS))
         self.assertEqual(len(self.saved_csvs()), 1)
         lines = self.saved_csvs()[0].read_text(encoding="utf-8").splitlines()
         self.assertEqual(lines[0], "id,value")
         self.assertEqual(len(lines), 25)
 
-    def test_rejected_submission_keeps_answers(self):
+    def test_retries_after_server_error_then_succeeds(self):
+        ok = mock.MagicMock(status_code=200)
+        ok.json.return_value = {"submission_id": "s2"}
+        side_effect = [requests.ConnectionError(), mock.MagicMock(status_code=503), ok]
+        with mock.patch.object(ftf.requests, "post", side_effect=side_effect) as post_mock:
+            receipt = ftf.submit(valid_answers(), run=1)
+        self.assertEqual(receipt["submission_id"], "s2")
+        self.assertEqual(post_mock.call_count, 3)
+
+    def test_rejected_submission_is_not_retried_and_keeps_answers(self):
         response = mock.MagicMock(status_code=400, text="bad code")
-        with mock.patch.object(ftf.requests, "post", return_value=response):
+        with mock.patch.object(ftf.requests, "post", return_value=response) as post_mock:
             result = ftf.submit(valid_answers(), run=3)
         self.assertEqual(result["status"], 400)
+        self.assertEqual(post_mock.call_count, 1)
         self.assertEqual(len(self.saved_csvs()), 1)
+
+    def test_resubmit_sends_saved_answers_unchanged(self):
+        with mock.patch.object(ftf.requests, "post", side_effect=requests.ConnectionError()):
+            saved = ftf.submit(valid_answers(), run="final_v2")["saved"]
+        ok = mock.MagicMock(status_code=200)
+        ok.json.return_value = {"submission_id": "s3"}
+        with mock.patch.object(ftf.requests, "post", return_value=ok) as post_mock:
+            receipt = ftf.resubmit(saved)
+        self.assertEqual(receipt["submission_id"], "s3")
+        payload = post_mock.call_args.kwargs["json"]
+        self.assertEqual(payload["answers"], valid_answers())
+        self.assertIsInstance(payload["answers"]["A1"], int)
+        self.assertEqual(payload["run"], "team-test-run-final_v2")
+
+    def test_resubmit_rejects_other_files(self):
+        with self.assertRaises(ValueError):
+            ftf.resubmit("my_answers.csv")
 
     def test_invalid_answers_are_not_sent(self):
         answers = valid_answers()

@@ -10,12 +10,18 @@ Settings come from environment variables:
     SUBMIT_CODE         your team's submission code
     SUBMIT_URL          optional; defaults to the event's submission address
     FTF_TEST_MODE       set to 1 to send submissions to the test address
+
+To resend answers saved by a failed submission:
+    python ai_only/ftf.py resubmit answers/answers_<run>_<time>.csv
 """
 import csv
 import json
 import math
 import numbers
 import os
+import re
+import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,6 +40,7 @@ B_LIMITS = {
     "B5": (100, "bp"), "B6": (100, "bp"), "B7": (100, "bp"),
     "B8": (25, "%"), "B9": (25, "%"), "B10": (25, "%"),
 }
+RETRY_WAITS = (5, 15)  # seconds to wait before the 2nd and 3rd submission attempts
 HERE = Path(__file__).resolve().parent
 _client = None
 
@@ -148,6 +155,7 @@ def submit(answers, run):
     """Check, save and send your answers. Returns the receipt, or an error dict if sending failed.
 
     Answers are always saved to answers/ (in the folder you run from) before sending.
+    If the server can't be reached, it tries twice more before giving up.
     """
     validate_answers(answers)
     team, code = _env("TEAM_ID"), _env("SUBMIT_CODE")
@@ -168,12 +176,21 @@ def submit(answers, run):
     payload = {"team": team, "code": code, "track": "ai-only", "run": f"{team}-run-{run}",
                "answers": {q: _plain(answers[q]) for q in QUESTION_IDS}}
 
-    try:
-        response = requests.post(url, json=payload, timeout=30)
-    except requests.RequestException as e:
-        return _fallback(backup, f"could not reach {url} ({e.__class__.__name__})")
-    if response.status_code >= 500:
-        return _fallback(backup, f"the server returned an error ({response.status_code})")
+    for wait in (0, *RETRY_WAITS):
+        if wait:
+            print(f"Submission not sent ({reason}). Trying again in {wait} seconds...")
+            time.sleep(wait)
+        try:
+            response = requests.post(url, json=payload, timeout=30)
+        except requests.RequestException as e:
+            reason = f"could not reach {url} ({e.__class__.__name__})"
+            continue
+        if response.status_code < 500:
+            break
+        reason = f"the server returned an error ({response.status_code})"
+    else:
+        return _fallback(backup, reason, team)
+
     if response.status_code >= 400:
         print(f"Submission rejected ({response.status_code}): {response.text}")
         print(f"Your answers are saved in {backup}. Fix the problem and submit again.")
@@ -188,7 +205,35 @@ def submit(answers, run):
     return receipt
 
 
-def _fallback(backup, reason):
+def _fallback(backup, reason, team):
     print(f"Submission not sent: {reason}.")
-    print(f"Email {backup} to events@porosfoundry.ai before 21:00 GMT on 3 November.")
+    print(f"Your answers are saved in {backup}. Resend them later with:")
+    print(f"    python ai_only/ftf.py resubmit {backup}")
+    print(f"If the submission server is still down at the deadline, email {backup} to events@porosfoundry.ai "
+          f"before 21:00 GMT with the subject: FTF US Midterms submission {team}")
     return {"error": reason, "saved": str(backup)}
+
+
+def resubmit(path):
+    """Send answers saved by submit() again, for example after the server couldn't be reached."""
+    path = Path(path)
+    match = re.fullmatch(r"answers_(.+)_\d{8}T\d{6}Z\.csv", path.name)
+    if not match:
+        raise ValueError(f"{path.name} is not a file saved by submit() (answers_<run>_<time>.csv)")
+    with open(path, newline="", encoding="utf-8") as f:
+        answers = {row["id"]: _number(row["value"]) for row in csv.DictReader(f)}
+    return submit(answers, match.group(1))
+
+
+def _number(text):
+    try:
+        return int(text)
+    except ValueError:
+        return float(text)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "resubmit":
+        resubmit(sys.argv[2])
+    else:
+        sys.exit("Usage: python ai_only/ftf.py resubmit answers/answers_<run>_<time>.csv")

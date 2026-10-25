@@ -36,4 +36,6 @@ These settings last until you close the terminal.
 
 ## If submitting fails
 
-Your answers are always saved to `answers/` first. Email that CSV to events@porosfoundry.ai before 21:00 GMT.
+- Submit a first version early. Only your latest submission counts, so you can update it until 21:00 GMT.
+- `submit()` retries automatically. If it still fails, your answers are saved in `answers/`. Resend them later with `python ai_only/ftf.py resubmit <file>`.
+- If the submission server is down at the deadline, email the saved file to events@porosfoundry.ai before 21:00 GMT with the subject **FTF US Midterms submission [team_id]**, for example `FTF US Midterms submission team-07`.
