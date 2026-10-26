@@ -33,7 +33,7 @@ DEFAULT_SUBMIT_URL = "https://submit.porosfoundry.ai/api/submit"
 # Filled in by the organisers. Other models work but print a warning.
 APPROVED_MODELS = {"strong": "TO-BE-CONFIRMED", "cheap": "TO-BE-CONFIRMED"}
 ROLES = ("research", "forecast", "critique", "aggregate", "final", "other")
-QUESTION_IDS = [f"A{i}" for i in range(1, 15)] + [f"B{i}" for i in range(1, 11)]
+QUESTION_IDS = [f"A{i}" for i in range(1, 16)] + [f"B{i}" for i in range(1, 11)]
 # Largest allowed absolute value for each Part B answer, with its unit.
 B_LIMITS = {
     "B1": (25, "%"), "B2": (25, "%"), "B3": (25, "%"), "B4": (30, "points"),
@@ -61,7 +61,7 @@ def _openrouter():
 
 
 def load_questions(path=HERE / "questions.json"):
-    """Return the 24 questions (id, part, text, unit, market_links) in ID order."""
+    """Return the 25 questions (id, part, text, unit, market_links) in ID order."""
     questions = json.loads(Path(path).read_text(encoding="utf-8"))
     return sorted(questions, key=lambda q: QUESTION_IDS.index(q["id"]))
 
@@ -79,7 +79,7 @@ def ask(question_id, role, messages, model, run, online=False, **kwargs):
     if role not in ROLES:
         raise ValueError(f"role must be one of {', '.join(ROLES)}; got {role!r}")
     if question_id not in QUESTION_IDS and question_id != "general":
-        raise ValueError(f"question_id must be A1-A14, B1-B10 or 'general'; got {question_id!r}")
+        raise ValueError(f"question_id must be A1-A15, B1-B10 or 'general'; got {question_id!r}")
     if model not in APPROVED_MODELS.values():
         print(f"Warning: {model} is not an approved model")
     if isinstance(messages, str):
@@ -112,7 +112,7 @@ def ask(question_id, role, messages, model, run, online=False, **kwargs):
 
 
 def answers_template():
-    """Return all 24 question IDs set to None, ready to fill in."""
+    """Return all 25 question IDs set to None, ready to fill in."""
     return {q: None for q in QUESTION_IDS}
 
 

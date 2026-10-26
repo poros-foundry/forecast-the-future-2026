@@ -62,21 +62,21 @@
   {
     "id": "A7",
     "part": "A",
-    "text": "South Carolina Senate: probability the Democratic candidate wins",
-    "unit": "% (whole number, 1-99)",
-    "market_links": [
-      "https://kalshi.com/markets/senatesc/south-carolina-senate-race/senatesc-26",
-      "https://polymarket.com/event/south-carolina-senate-election-winner"
-    ]
-  },
-  {
-    "id": "A8",
-    "part": "A",
     "text": "Alaska Senate: probability the Democratic candidate wins",
     "unit": "% (whole number, 1-99)",
     "market_links": [
       "https://kalshi.com/markets/senateak/alaska-senate-race/senateak-26",
       "https://polymarket.com/event/alaska-senate-election-winner"
+    ]
+  },
+  {
+    "id": "A8",
+    "part": "A",
+    "text": "FL-14: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/kxhouserace/house-race-winner/kxhouserace-fl14-26",
+      "https://polymarket.com/event/fl-14-house-election-winner"
     ]
   },
   {
@@ -102,6 +102,16 @@
   {
     "id": "A11",
     "part": "A",
+    "text": "MI-04: probability the Democratic candidate wins",
+    "unit": "% (whole number, 1-99)",
+    "market_links": [
+      "https://kalshi.com/markets/housemi4/house-mi-4/housemi4-26",
+      "https://polymarket.com/event/mi-04-house-election-winner"
+    ]
+  },
+  {
+    "id": "A12",
+    "part": "A",
     "text": "MT-01: probability the Democratic candidate wins",
     "unit": "% (whole number, 1-99)",
     "market_links": [
@@ -110,7 +120,7 @@
     ]
   },
   {
-    "id": "A12",
+    "id": "A13",
     "part": "A",
     "text": "VA-01: probability the Democratic candidate wins",
     "unit": "% (whole number, 1-99)",
@@ -120,7 +130,7 @@
     ]
   },
   {
-    "id": "A13",
+    "id": "A14",
     "part": "A",
     "text": "House control: probability Democrats win a majority (218+ seats)",
     "unit": "% (whole number, 1-99)",
@@ -130,7 +140,7 @@
     ]
   },
   {
-    "id": "A14",
+    "id": "A15",
     "part": "A",
     "text": "Senate control: probability Democrats win a majority (51+ seats, as the VP breaks ties for Republicans)",
     "unit": "% (whole number, 1-99)",

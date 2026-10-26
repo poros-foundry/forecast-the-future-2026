@@ -46,7 +46,7 @@ class AskTests(unittest.TestCase):
 
     def test_rejects_invalid_question_id(self):
         with self.assertRaises(ValueError):
-            ftf.ask("A15", "research", "hi", "some/model", run=1)
+            ftf.ask("A16", "research", "hi", "some/model", run=1)
 
     def test_sends_user_session_and_trace(self):
         reply = ftf.ask("A3", "final", "hi", "some/model", run=5, temperature=0)
@@ -76,6 +76,11 @@ class AskTests(unittest.TestCase):
 class ValidateTests(unittest.TestCase):
     def test_valid_answers_pass(self):
         ftf.validate_answers(valid_answers())
+
+    def test_question_set(self):
+        self.assertEqual(len(ftf.QUESTION_IDS), 25)
+        self.assertEqual(ftf.QUESTION_IDS[14], "A15")
+        self.assertEqual([q["id"] for q in ftf.load_questions()], ftf.QUESTION_IDS)
 
     def test_reports_missing_and_extra_ids(self):
         answers = valid_answers()
@@ -152,7 +157,7 @@ class SubmitTests(unittest.TestCase):
         self.assertEqual(len(self.saved_csvs()), 1)
         lines = self.saved_csvs()[0].read_text(encoding="utf-8").splitlines()
         self.assertEqual(lines[0], "id,value")
-        self.assertEqual(len(lines), 25)
+        self.assertEqual(len(lines), 26)  # header + 25 answers
 
     def test_retries_after_server_error_then_succeeds(self):
         ok = mock.MagicMock(status_code=200)

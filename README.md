@@ -11,8 +11,8 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 
 | File | What it is | Made by |
 |---|---|---|
-| `kalshi_odds_hourly.csv` | Hourly Kalshi odds for A1–A14, with bid, ask, volume and open interest | `fetch_kalshi.py` |
-| `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A14 | `fetch_polymarket.py` |
+| `kalshi_odds_hourly.csv` | Hourly Kalshi odds for A1–A15, with bid, ask, volume and open interest | `fetch_kalshi.py` |
+| `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A15 | `fetch_polymarket.py` |
 | `government_bond_yields_daily.csv` | US 2-year, US 10-year and UK 10-year yields since 2016 (B5–B7) | `fetch_treasury_yields.py` |
 | `yahoo_prices_daily.csv` | Daily open, high, low, close, adjusted close and volume since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
 | `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
@@ -23,8 +23,8 @@ The official VIX history (daily open, high, low and close since 1990) is on [Cbo
 
 | File | What it does |
 |---|---|
-| `fetch_kalshi.py` | Downloads hourly Kalshi odds for A1–A14 |
-| `fetch_polymarket.py` | Downloads hourly Polymarket odds for A1–A14 |
+| `fetch_kalshi.py` | Downloads hourly Kalshi odds for A1–A15 |
+| `fetch_polymarket.py` | Downloads hourly Polymarket odds for A1–A15 |
 | `fetch_treasury_yields.py` | Downloads US yields from the US Treasury and the UK gilt yield from the Bank of England |
 | `fetch_yahoo_data.py` | Downloads daily or intraday prices from Yahoo Finance |
 | `prediction_market_lookup.csv` | The Kalshi and Polymarket market used for each question |
