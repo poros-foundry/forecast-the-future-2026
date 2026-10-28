@@ -47,6 +47,24 @@ These settings last until you close the terminal.
 
 Costs are rough estimates for a call of about 3,000 tokens in and 800 out, at OpenRouter prices on 28 Oct. `online=True` adds about $0.01–0.02 per call, and models that reason at length can cost several times more.
 
+## Optional: let the model fetch data with tools
+
+`ftf_tools.py` gives the model three tools built on the data kit: `get_market_odds`, `get_yields` and `get_prices`. They download live data and fall back to the kit's files. Use them, adapt them, or write your own.
+
+```python
+import ftf, ftf_tools
+
+messages = [{"role": "user", "content": "Research A9. Use the tools if useful."}]
+for _ in range(5):  # cap the rounds
+    reply = ftf.ask("A9", "research", messages, model, run=1, tools=ftf_tools.TOOLS, full=True)
+    if not reply.tool_calls:
+        break
+    messages += ftf_tools.handle(reply)
+print(reply.content)
+```
+
+Each round resends the whole conversation, so keep tool results short. The defaults return summaries; hourly and intraday data can be much longer.
+
 ## If submitting fails
 
 - Submit a first version early. Only your latest submission counts, so you can update it until 21:00 GMT.

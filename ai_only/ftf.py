@@ -77,7 +77,7 @@ def load_questions(path=HERE / "questions.json"):
     return sorted(questions, key=lambda q: QUESTION_IDS.index(q["id"]))
 
 
-def ask(question_id, role, messages, model, run, online=False, **kwargs):
+def ask(question_id, role, messages, model, run, online=False, full=False, **kwargs):
     """Call a model through OpenRouter and return the reply text.
 
     question_id: a question ID such as "A1", or "general" for calls not tied to one question.
@@ -85,7 +85,9 @@ def ask(question_id, role, messages, model, run, online=False, **kwargs):
     messages: a list of chat messages, or a single string for one user message.
     run: a number or short label for this run, e.g. 1.
     online: True to let OpenRouter search the web for this call (costs extra).
-    Other keyword arguments (temperature, max_tokens, ...) are passed to the model.
+    full: True to return the whole reply message instead of its text, including any
+        tool requests (message.tool_calls). Use this with tools=...; see ftf_tools.py.
+    Other keyword arguments (temperature, max_tokens, tools, ...) are passed to the model.
     """
     if role not in ROLES:
         raise ValueError(f"role must be one of {', '.join(ROLES)}; got {role!r}")
@@ -119,7 +121,12 @@ def ask(question_id, role, messages, model, run, online=False, **kwargs):
 
     tokens = response.usage.total_tokens if response.usage else "?"
     print(f"{datetime.now(timezone.utc):%H:%M:%S} {question_id} {role} {model} tokens={tokens}")
-    return response.choices[0].message.content
+    message = response.choices[0].message
+    if full:
+        return message
+    if message.tool_calls and not message.content:
+        print("The model asked to use a tool. Call ask(..., full=True) to get its tool requests.")
+    return message.content
 
 
 def answers_template():

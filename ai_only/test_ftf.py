@@ -62,6 +62,12 @@ class AskTests(unittest.TestCase):
                                          "question": "A3", "role": "final"})
         self.assertNotIn("plugins", body)
 
+    def test_full_returns_message_with_tool_calls(self):
+        tools = [{"type": "function", "function": {"name": "x", "parameters": {"type": "object", "properties": {}}}}]
+        message = ftf.ask("A1", "research", "hi", "some/model", run=1, tools=tools, full=True)
+        self.assertIs(message, self.client.chat.completions.create.return_value.choices[0].message)
+        self.assertEqual(self.client.chat.completions.create.call_args.kwargs["tools"], tools)
+
     def test_online_adds_web_search(self):
         ftf.ask("general", "research", "hi", "some/model", run=1, online=True)
         body = self.client.chat.completions.create.call_args.kwargs["extra_body"]
