@@ -30,8 +30,19 @@ from openai import APIStatusError, OpenAI
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
 DEFAULT_SUBMIT_URL = "https://submit.porosfoundry.ai/api/submit"
-# Filled in by the organisers. Other models work but print a warning.
-APPROVED_MODELS = {"strong": "TO-BE-CONFIRMED", "cheap": "TO-BE-CONFIRMED"}
+# The models allowed for the event. OpenRouter rejects calls to any other model.
+APPROVED_MODELS = {
+    "Claude Haiku 4.5": "anthropic/claude-haiku-4.5",
+    "Claude Sonnet 5": "anthropic/claude-sonnet-5",
+    "Claude Opus 5": "anthropic/claude-opus-5",
+    "GPT-5.6 Terra": "openai/gpt-5.6-terra",
+    "GPT-6 Sol": "openai/gpt-6-sol",
+    "Gemini 3.8 Flash": "google/gemini-3.8-flash",
+    "Gemini 4 Argon": "google/gemini-4-argon",
+    "DeepSeek V4.1 Flash": "deepseek/deepseek-v4.1-flash",
+    "DeepSeek V4 Pro 0423": "deepseek/deepseek-v4-pro",
+    "Qwen3 235B A22B Instruct 2507": "qwen/qwen3-235b-a22b-2507",
+}
 ROLES = ("research", "forecast", "critique", "aggregate", "final", "other")
 QUESTION_IDS = [f"A{i}" for i in range(1, 16)] + [f"B{i}" for i in range(1, 11)]
 # Largest allowed absolute value for each Part B answer, with its unit.
@@ -81,7 +92,7 @@ def ask(question_id, role, messages, model, run, online=False, **kwargs):
     if question_id not in QUESTION_IDS and question_id != "general":
         raise ValueError(f"question_id must be A1-A15, B1-B10 or 'general'; got {question_id!r}")
     if model not in APPROVED_MODELS.values():
-        print(f"Warning: {model} is not an approved model")
+        print(f"Warning: {model} is not an allowed model, so OpenRouter will probably reject it. See ai_only/README.md")
     if isinstance(messages, str):
         messages = [{"role": "user", "content": messages}]
 

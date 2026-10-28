@@ -5,7 +5,7 @@ import re
 import ftf
 
 os.environ["FTF_TEST_MODE"] = "1"  # this example only ever sends to the test address
-model = ftf.APPROVED_MODELS["cheap"]
+model = ftf.APPROVED_MODELS["DeepSeek V4.1 Flash"]  # any allowed model works; see ai_only/README.md
 q = ftf.load_questions()[0]  # A1
 
 notes = ftf.ask(q["id"], "research", f"Summarise recent news relevant to: {q['text']}", model, run=1, online=True)

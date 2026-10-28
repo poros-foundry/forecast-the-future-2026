@@ -30,9 +30,22 @@ These settings last until you close the terminal.
 - Use models and web search only through OpenRouter. The data kit and your own local code are allowed.
 - Your budget is $30 per team. Test on a few questions before a full run.
 
+**Only these models are allowed.** OpenRouter rejects calls to any other model.
+
 | Model | `ask(model=...)` | Rough cost per call |
 |---|---|---|
-| *(to be confirmed)* | | |
+| Claude Haiku 4.5 | `anthropic/claude-haiku-4.5` | ~$0.007 |
+| Claude Sonnet 5 | `anthropic/claude-sonnet-5` | ~$0.014 |
+| Claude Opus 5 | `anthropic/claude-opus-5` | ~$0.035 |
+| GPT-5.6 Terra | `openai/gpt-5.6-terra` | ~$0.016 |
+| GPT-6 Sol | `openai/gpt-6-sol` | ~$0.014 |
+| Gemini 3.8 Flash | `google/gemini-3.8-flash` | ~$0.006 |
+| Gemini 4 Argon | `google/gemini-4-argon` | ~$0.014 |
+| DeepSeek V4.1 Flash | `deepseek/deepseek-v4.1-flash` | ~$0.001 |
+| DeepSeek V4 Pro 0423 | `deepseek/deepseek-v4-pro` | ~$0.004 |
+| Qwen3 235B A22B Instruct 2507 | `qwen/qwen3-235b-a22b-2507` | ~$0.001 |
+
+Costs are rough estimates for a call of about 3,000 tokens in and 800 out, at OpenRouter prices on 28 Oct. `online=True` adds about $0.01–0.02 per call, and models that reason at length can cost several times more.
 
 ## If submitting fails
 
