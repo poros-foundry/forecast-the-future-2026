@@ -15,7 +15,6 @@ This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-
 | `polymarket_odds_hourly.csv` | Hourly Polymarket odds for A1–A15 | `fetch_polymarket.py` |
 | `government_bond_yields_daily.csv` | US 2-year, US 10-year and UK 10-year yields since 2016 (B5–B7) | `fetch_treasury_yields.py` |
 | `yahoo_prices_daily.csv` | Daily open, high, low, close, adjusted close and volume since 2016 for SPY, IWM, NVDA, VIX, gold, WTI and Henry Hub | `fetch_yahoo_data.py` |
-| `past_election_moves_5min.csv` | How futures moved around the last five US election nights | Provided by us, no script |
 
 The official VIX history (daily open, high, low and close since 1990) is on [Cboe's VIX historical data page](https://www.cboe.com/tradable_products/vix/vix_historical_data/), as a CSV at `https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`. B4 is scored on Cboe's official close. FRED republishes the same close as `VIXCLS`.
 
@@ -32,6 +31,8 @@ The official VIX history (daily open, high, low and close since 1990) is on [Cbo
 **AI-only track ([`ai_only/`](ai_only/README.md))**: more instructions for AI-only teams, in [`ai_only/README.md`](ai_only/README.md). This folder is only relevant to the AI-only track. It only covers how to call models through OpenRouter and how to submit, and contains no additional information about the questions.
 
 **Additional guide ([`additional_guide.md`](additional_guide.md))**: other free data sources, in case you are looking for somewhere to find more data.
+
+**Databento guide ([`databento_guide.md`](databento_guide.md))**: how to download past election-night futures data from Databento yourself. Because of data licensing, we can't include it in the kit.
 
 **`requirements.txt`**: the Python packages the scripts need.
 
@@ -98,17 +99,6 @@ Columns: `date, instrument, ticker, open, high, low, close, adj_close, volume`, 
 | `python code/fetch_yahoo_data.py --interval 1m` | 1 minute | 30 days |
 
 Intraday files are saved as `data/yahoo_prices_<interval>.csv`, with times in UTC, and include pre-market and after-hours trading. US stocks don't trade between about 01:00 and 09:00 GMT, so they have no prices overnight.
-
-### Past election moves
-
-Columns: `election, instrument, contract, time_gmt, minutes_from_reference, change_pct, approx_yield_change_bp`.
-
-- Futures: S&P 500 (ES), Russell 2000 (RTY), 2-year Treasury (ZT), 10-year Treasury (ZN), gold (GC), WTI (CL) and Henry Hub (NG), in 5-minute steps. Russell 2000 futures start in 2018.
-- There is no overnight data for NVDA, VIX or the UK gilt yield.
-- Elections: 2016, 2018, 2020, 2022 and 2024. Each window runs from 00:00 GMT the day before election day to 24:00 GMT the day after.
-- `change_pct` is the % change from 21:00 GMT on election day. Each election uses that year's December contract.
-- `approx_yield_change_bp` is a rough conversion for ZT and ZN only. Treasury futures **rise when yields fall**.
-- Futures pause for a daily break around 22:00–23:00 GMT, which shows as gaps.
 
 ## Sources
 
