@@ -146,6 +146,16 @@ class SubmitTests(unittest.TestCase):
         self.assertEqual(post_mock.call_args.args[0], ftf.DEFAULT_SUBMIT_URL)
         self.assertEqual(len(list(Path("receipts").glob("receipt_1_*.json"))), 1)
 
+    def test_team_name_is_sent_only_when_set(self):
+        response = mock.MagicMock(status_code=200)
+        response.json.return_value = {}
+        with mock.patch.object(ftf.requests, "post", return_value=response) as post_mock:
+            ftf.submit(valid_answers(), run=1)
+            self.assertNotIn("team_name", post_mock.call_args.kwargs["json"])
+            os.environ["TEAM_NAME"] = "The Forecasters"
+            ftf.submit(valid_answers(), run=1)
+            self.assertEqual(post_mock.call_args.kwargs["json"]["team_name"], "The Forecasters")
+
     def test_test_mode_uses_test_address(self):
         os.environ["FTF_TEST_MODE"] = "1"
         response = mock.MagicMock(status_code=200)

@@ -2,6 +2,8 @@
 
 Because of data licensing, we can't distribute Databento data in a ready-to-download format. If you need more market data, you can download it directly from [Databento](https://databento.com) with your own account.
 
+**AI-only teams:** Databento isn't allowed for your track. Use only the data pack and models and web search through OpenRouter; see [`ai_only/README.md`](ai_only/README.md).
+
 **Past election nights at intraday detail:**
 - **2024:** hourly prices from Yahoo Finance, with `python code/fetch_yahoo_data.py --interval 1h`. Only available until about 4 November 2026, when it drops out of Yahoo's 730-day window.
 - **2016, 2018, 2020, 2022 and 2024:** minute-by-minute futures prices from Databento (CME, from 2010). The steps below show how to [set up Databento](#set-a-spending-limit-first) and [download the data](#download). US stocks on Nasdaq are available from 2018.

@@ -3,7 +3,7 @@ US Midterm Election Night Edition: battleground races and the post-election mark
 
 This repo is the participant data kit. All times are GMT (UTC). Dates are `YYYY-MM-DD`.
 
-**You are not expected to use any of the data given here, and there are no rules on what you use.** It is provided only to save you time. Your forecasts are evaluated against the real outcomes and compared with the prediction market benchmark.
+**You are not expected to use any of the data given here, and there are no rules on what you use.** It is provided only to save you time. Your forecasts are evaluated against the real outcomes and compared with the prediction market benchmark. AI-only teams have rules on data and tools; see [`ai_only/README.md`](ai_only/README.md).
 
 ## What we provide
 

@@ -7,6 +7,7 @@ submit. Setup and rules: ai_only/README.md
 Settings come from environment variables:
     OPENROUTER_API_KEY  your team's OpenRouter key
     TEAM_ID             e.g. team-07
+    TEAM_NAME           optional; the team name you'd like shown in the results
     SUBMIT_CODE         your team's submission code
     SUBMIT_URL          optional; defaults to the event's submission address
     FTF_TEST_MODE       set to 1 to send submissions to the test address
@@ -29,7 +30,7 @@ import requests
 from openai import APIStatusError, OpenAI
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
-DEFAULT_SUBMIT_URL = "https://submit.porosfoundry.ai/api/submit"
+DEFAULT_SUBMIT_URL = "https://porosfoundry.ai/api/ftf-2026/submit"
 # The models allowed for the event. OpenRouter rejects calls to any other model.
 APPROVED_MODELS = {
     "Claude Haiku 4.5": "anthropic/claude-haiku-4.5",
@@ -193,6 +194,8 @@ def submit(answers, run):
         url += "-test"
     payload = {"team": team, "code": code, "track": "ai-only", "run": f"{team}-run-{run}",
                "answers": {q: _plain(answers[q]) for q in QUESTION_IDS}}
+    if os.environ.get("TEAM_NAME"):
+        payload["team_name"] = os.environ["TEAM_NAME"]
 
     for wait in (0, *RETRY_WAITS):
         if wait:
@@ -228,7 +231,7 @@ def _fallback(backup, reason, team):
     print(f"Your answers are saved in {backup}. Resend them later with:")
     print(f"    python ai_only/ftf.py resubmit {backup}")
     print(f"If the submission server is still down at the deadline, email {backup} to events@porosfoundry.ai "
-          f"before 21:00 GMT with the subject: FTF US Midterms submission {team}")
+          f"before 22:00 GMT with the subject: FTF US Midterms submission {team}")
     return {"error": reason, "saved": str(backup)}
 
 

@@ -2,6 +2,8 @@
 
 We list these sources only in case you are looking for somewhere to find additional data. You don't need to use any of them. They are not recommendations, and you can use any other source you like.
 
+**AI-only teams:** these sources aren't allowed for your track. Use only the data pack and models and web search through OpenRouter; see [`ai_only/README.md`](ai_only/README.md).
+
 ## Macro and interest rates
 
 - **[FRED](https://fred.stlouisfed.org/)**: US and international economic and financial series. Any series downloads as a CSV without an API key, for example `https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10`. See [Downloading data from FRED](https://fred.stlouisfed.org/help/data/downloading/using-the-download-data-link/).

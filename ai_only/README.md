@@ -6,29 +6,32 @@
 pip install -r requirements.txt
 ```
 
-**2. Set your team details.** You'll receive these by email on Mon 2 Nov.
+**2. Set your team details.** You'll receive these by email on 1 Nov at 14:00 GMT. `TEAM_NAME` is the name you'd like to see in the results email if you win a prize.
 
 macOS / Linux:
 ```bash
-export OPENROUTER_API_KEY="your-key" TEAM_ID="team-07" SUBMIT_CODE="your-code" FTF_TEST_MODE=1
+export OPENROUTER_API_KEY="your-key" TEAM_ID="team-07" SUBMIT_CODE="your-code" TEAM_NAME="Your team name" FTF_TEST_MODE=1
 ```
 
 Windows PowerShell:
 ```powershell
-$env:OPENROUTER_API_KEY="your-key"; $env:TEAM_ID="team-07"; $env:SUBMIT_CODE="your-code"; $env:FTF_TEST_MODE="1"
+$env:OPENROUTER_API_KEY="your-key"; $env:TEAM_ID="team-07"; $env:SUBMIT_CODE="your-code"; $env:TEAM_NAME="Your team name"; $env:FTF_TEST_MODE="1"
 ```
 
 These settings last until you close the terminal.
 
 **3. Test.** Run `python ai_only/example.py`. It makes two model calls and a test submission, and prints a receipt.
 
-**4. Submit for real.** Set `FTF_TEST_MODE=0` and submit between **16:00 and 21:00 GMT on 3 Nov**. Only your latest submission counts.
+**4. Submit for real.** Set `FTF_TEST_MODE=0` and submit between **12:00 GMT on 1 Nov and 22:00 GMT on 3 Nov**. Only your latest submission counts. Test mode works at any time.
 
 ## Rules
 
 - Make every model call with `ftf.ask()` and give it a role. Use `role="final"` for the call that produces each submitted number.
-- Use models and web search only through OpenRouter. The data kit and your own local code are allowed.
-- Your budget is $30 per team. Test on a few questions before a full run.
+- Submit exactly what your agent outputs. Every submitted answer must match a `final` call in your last run before 22:00.
+- Steer, don't dictate: changing how your agent forecasts is fine; telling it the answer ("set Texas to 55%") is not.
+- Use models and web search only through OpenRouter (`online=True` for search). The data pack is allowed, including its scripts in `code/` and `ftf_tools.py`, and so is your own local code. No other external APIs or data sources.
+- Your budget is $30 per team. Requests stop when it runs out. Test on a few questions before a full run.
+- Hand in a half-page README plus your code or a short note on the tools you used.
 
 **Only these models are allowed.** OpenRouter rejects calls to any other model.
 
@@ -67,6 +70,6 @@ Each round resends the whole conversation, so keep tool results short. The defau
 
 ## If submitting fails
 
-- Submit a first version early. Only your latest submission counts, so you can update it until 21:00 GMT.
+- Submit a first version early. Only your latest submission counts, so you can update it until 22:00 GMT.
 - `submit()` retries automatically. If it still fails, your answers are saved in `answers/`. Resend them later with `python ai_only/ftf.py resubmit <file>`.
-- If the submission server is down at the deadline, email the saved file to events@porosfoundry.ai before 21:00 GMT with the subject **FTF US Midterms submission [team_id]**, for example `FTF US Midterms submission team-07`.
+- If the submission server is down at the deadline, email the saved file to events@porosfoundry.ai before 22:00 GMT with the subject **FTF US Midterms submission [team_id]**, for example `FTF US Midterms submission team-07`.
