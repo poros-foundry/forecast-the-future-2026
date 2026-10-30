@@ -1,6 +1,10 @@
 """Tests for ftf.py, with all network calls mocked. Run: python -m unittest ai_only/test_ftf.py"""
+import io
+import json
 import math
 import os
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -12,6 +16,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ftf  # noqa: E402
 
+MODEL = ftf.APPROVED_MODELS["DeepSeek V4.1 Flash"]
 ENV = {"OPENROUTER_API_KEY": "test-key", "TEAM_ID": "team-test", "SUBMIT_CODE": "code-123"}
 
 
@@ -25,13 +30,37 @@ def valid_answers():
 def fake_completion(text="42"):
     response = mock.MagicMock()
     response.choices[0].message.content = text
+    response.choices[0].message.tool_calls = None
     response.usage.total_tokens = 10
     return response
 
 
-@mock.patch.dict(os.environ, ENV, clear=True)
-class AskTests(unittest.TestCase):
+def final_line(answer, own=None, market=None, reason="because"):
+    fields = {"answer": answer, "own_estimate": answer if own is None else own}
+    if market is not None:
+        fields["market_reference"] = market
+    fields["reason"] = reason
+    return "Some reasoning.\n" + json.dumps(fields)
+
+
+class InTempFolder(unittest.TestCase):
+    """Runs each test in an empty folder, with an empty in-memory run log."""
+
     def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        cwd = os.getcwd()
+        os.chdir(self.folder.name)
+        self.addCleanup(os.chdir, cwd)
+        calls = mock.patch.object(ftf, "_calls", [])
+        calls.start()
+        self.addCleanup(calls.stop)
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class AskTests(InTempFolder):
+    def setUp(self):
+        super().setUp()
         self.client = mock.MagicMock()
         self.client.chat.completions.create.return_value = fake_completion("42")
         patcher = mock.patch.object(ftf, "_openrouter", return_value=self.client)
@@ -48,6 +77,8 @@ class AskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ftf.ask("A16", "research", "hi", "some/model", run=1)
 
+    @mock.patch.object(ftf, "GIT_DIRTY", False)
+    @mock.patch.object(ftf, "GIT_COMMIT", "abc123")
     def test_sends_user_session_and_trace(self):
         reply = ftf.ask("A3", "final", "hi", "some/model", run=5, temperature=0)
         self.assertEqual(reply, "42")
@@ -59,7 +90,8 @@ class AskTests(unittest.TestCase):
         self.assertEqual(body["user"], "team-test")
         self.assertEqual(body["session_id"], "team-test-run-5")
         self.assertEqual(body["trace"], {"trace_id": "team-test-run-5-A3", "trace_name": "A3",
-                                         "question": "A3", "role": "final"})
+                                         "question": "A3", "role": "final",
+                                         "git_commit": "abc123", "git_dirty": False})
         self.assertNotIn("plugins", body)
 
     def test_full_returns_message_with_tool_calls(self):
@@ -116,13 +148,9 @@ class ValidateTests(unittest.TestCase):
 
 
 @mock.patch.dict(os.environ, ENV, clear=True)
-class SubmitTests(unittest.TestCase):
+class SubmitTests(InTempFolder):
     def setUp(self):
-        self.folder = tempfile.TemporaryDirectory()
-        self.addCleanup(self.folder.cleanup)
-        cwd = os.getcwd()
-        os.chdir(self.folder.name)
-        self.addCleanup(os.chdir, cwd)
+        super().setUp()
         sleep = mock.patch.object(ftf.time, "sleep")
         self.sleep = sleep.start()
         self.addCleanup(sleep.stop)
@@ -216,6 +244,289 @@ class SubmitTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ftf.submit(answers, run=4)
         post_mock.assert_not_called()
+
+
+class ModelMock(InTempFolder):
+    """Mocks OpenRouter; say() sets the next reply and returns it from ask()."""
+
+    def setUp(self):
+        super().setUp()
+        self.client = mock.MagicMock()
+        patcher = mock.patch.object(ftf, "_openrouter", return_value=self.client)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def say(self, question_id, role, reply, run=1):
+        self.client.chat.completions.create.return_value = fake_completion(reply)
+        return ftf.ask(question_id, role, "hi", MODEL, run=run)
+
+    def printed(self, fn, *args, **kwargs):
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            result = fn(*args, **kwargs)
+        return result, out.getvalue()
+
+    def full_run(self, run=1, skip_research=(), skip_final=(), general=False):
+        # Research and a final call for every question; finals answer valid_answers().
+        if general:
+            self.say("general", "research", "notes", run)
+        for q, value in valid_answers().items():
+            if q not in skip_research and not general:
+                self.say(q, "research", "notes", run)
+            if q not in skip_final:
+                self.say(q, "final", final_line(value, market=55 if q.startswith("A") else None), run)
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class FinalReplyTests(ModelMock):
+    def test_valid_json_line(self):
+        reply, out = self.printed(self.say, "A1", "final", final_line(62, own=58, market=60))
+        self.assertTrue(reply.startswith("Some reasoning."))  # the whole reply is still returned
+        self.assertNotIn("Warning", out)
+        self.assertEqual(ftf._calls[-1]["final"]["own_estimate"], 58)
+
+    def test_json_inside_code_fences_and_trailing_spaces(self):
+        text = 'Reasoning\n```json\n{"answer": 62, "own_estimate": 60, "market_reference": 61, "reason": "x"}   \n```\n  '
+        _, out = self.printed(self.say, "A1", "final", text)
+        self.assertNotIn("Warning", out)
+        self.assertEqual(ftf._calls[-1]["final"]["answer"], 62)
+
+    def test_missing_line_warns_and_returns_reply(self):
+        reply, out = self.printed(self.say, "A1", "final", "I think 62.")
+        self.assertEqual(reply, "I think 62.")
+        self.assertIn("Warning: A1 final reply does not end with a JSON line", out)
+        self.assertIsNone(ftf._calls[-1]["final"])
+
+    def test_missing_field_warns(self):
+        _, out = self.printed(self.say, "A1", "final", '{"answer": 62, "own_estimate": 60, "reason": "x"}')
+        self.assertIn("missing market_reference", out)
+
+    def test_part_b_without_market_reference_is_fine(self):
+        _, out = self.printed(self.say, "B1", "final", final_line(-1.5))
+        self.assertNotIn("Warning", out)
+
+    def test_other_roles_are_not_parsed(self):
+        _, out = self.printed(self.say, "A1", "research", "no json here")
+        self.assertNotIn("Warning", out)
+        self.assertNotIn("final", ftf._calls[-1])
+
+    def test_second_final_warns_and_last_one_counts(self):
+        self.say("A1", "final", final_line(40, market=50))
+        _, out = self.printed(self.say, "A1", "final", final_line(45, market=50))
+        self.assertIn("second final call for A1", out)
+        answers, _ = self.printed(ftf.answers_from_finals, 1)
+        self.assertEqual(answers["A1"], 45)
+
+    def test_finals_in_other_runs_are_separate(self):
+        self.say("A1", "final", final_line(40, market=50), run=1)
+        _, out = self.printed(self.say, "A1", "final", final_line(45, market=50), run=2)
+        self.assertNotIn("second final", out)
+
+    def test_answers_from_finals_returns_all_25(self):
+        self.say("A1", "final", final_line(62.0, market=50))
+        self.say("B2", "final", final_line(-3.25))
+        answers, out = self.printed(ftf.answers_from_finals, 1)
+        self.assertEqual(list(answers), ftf.QUESTION_IDS)
+        self.assertEqual(answers["A1"], 62)
+        self.assertIsInstance(answers["A1"], int)
+        self.assertEqual(answers["B2"], -3.25)
+        self.assertIsNone(answers["A2"])
+        self.assertIn("No final answer in run 1 for: A2", out)
+
+    def test_run_log_is_read_back_from_file(self):
+        self.say("A1", "research", "notes", run=3)
+        self.say("A1", "final", final_line(70, market=65), run=3)
+        path = Path(".ftf/runs/team-test-run-3.jsonl")
+        self.assertEqual(len(path.read_text(encoding="utf-8").splitlines()), 2)
+        ftf._calls.clear()  # as if submit() ran in a separate script
+        answers, _ = self.printed(ftf.answers_from_finals, 3)
+        self.assertEqual(answers["A1"], 70)
+        self.assertEqual([c["role"] for c in ftf.run_calls(3)], ["research", "final"])
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class SubmitCheckTests(ModelMock):
+    def dry_run(self, answers=None, run=1, **kwargs):
+        with mock.patch.object(ftf.requests, "post") as post_mock:
+            result, out = self.printed(ftf.submit, answers or valid_answers(), run, dry_run=True, **kwargs)
+        post_mock.assert_not_called()
+        return result, out
+
+    def test_complete_run_has_no_warnings(self):
+        self.full_run()
+        result, out = self.dry_run()
+        self.assertEqual(result["warnings"], [])
+        self.assertNotIn("Warning", out)
+
+    def test_missing_research(self):
+        self.full_run(skip_research=("A2", "B3"))
+        result, _ = self.dry_run()
+        self.assertEqual(result["warnings"], ["no research call in run 1 for: A2, B3"])
+
+    def test_general_research_counts_for_every_question(self):
+        self.full_run(general=True)
+        result, _ = self.dry_run()
+        self.assertEqual(result["warnings"], [])
+
+    def test_missing_final(self):
+        self.full_run(skip_final=("A5",))
+        result, _ = self.dry_run()
+        self.assertEqual(result["warnings"], ["no final call in run 1 for: A5"])
+
+    def test_value_mismatch(self):
+        self.full_run()
+        answers = valid_answers()
+        answers.update({"A1": 70, "B1": -1.4})
+        result, out = self.dry_run(answers)
+        self.assertEqual(result["warnings"], [
+            "A1: submitting 70, but the last final call in run 1 answered 50",
+            "B1: submitting -1.4, but the last final call in run 1 answered -1.5"])
+        self.assertIn("never block", out)
+
+    def test_part_a_compared_after_rounding(self):
+        self.full_run()
+        self.say("A1", "final", final_line(62.0, market=60))
+        self.say("A2", "final", final_line(61.6, market=60))
+        answers = valid_answers()
+        answers.update({"A1": 62, "A2": 62})
+        result, _ = self.dry_run(answers)
+        self.assertEqual(result["warnings"], [])
+
+    def test_unparseable_last_final(self):
+        self.full_run()
+        self.say("A3", "final", "My answer is 50.")
+        result, _ = self.dry_run()
+        self.assertEqual(result["warnings"], ["the last final call has no parseable answer for: A3"])
+
+    def test_no_run_log_gives_one_warning(self):
+        result, _ = self.dry_run()
+        self.assertEqual(len(result["warnings"]), 1)
+        self.assertIn("run checks were skipped", result["warnings"][0])
+
+    def test_dry_run_saves_payload_with_details(self):
+        self.full_run()
+        os.environ["TEAM_NAME"] = "The Forecasters"
+        result, _ = self.dry_run()
+        payload = json.loads(Path(result["saved"]).read_text(encoding="utf-8"))
+        self.assertEqual(payload, result["payload"])
+        self.assertNotIn("code_commit", payload)  # the commit goes in the model call tags instead
+        self.assertEqual(payload["team_name"], "The Forecasters")
+        self.assertEqual(payload["helper_version"], ftf.HELPER_VERSION)
+        self.assertEqual(payload["run_summary"]["calls_by_role"], {"research": 25, "final": 25})
+        self.assertEqual(payload["run_summary"]["models"], [MODEL])
+        self.assertEqual(payload["warnings"], [])
+        self.assertNotIn("code", payload)
+        self.assertEqual(list(Path("answers").glob("answers_*.csv")), [])  # no resend backup for dry runs
+
+    def test_team_name_keyword_overrides_setting(self):
+        os.environ["TEAM_NAME"] = "From env"
+        result, _ = self.dry_run(team_name="From keyword")
+        self.assertEqual(result["payload"]["team_name"], "From keyword")
+
+    def test_dry_run_works_without_submit_code(self):
+        del os.environ["SUBMIT_CODE"]
+        result, _ = self.dry_run()
+        self.assertTrue(result["dry_run"])
+
+    def post_ok(self):
+        response = mock.MagicMock(status_code=200)
+        response.json.return_value = {"submission_id": "s1"}
+        return mock.patch.object(ftf.requests, "post", return_value=response)
+
+    def test_old_usage_sends_only_original_fields_and_saves_payload(self):
+        self.full_run()
+        with self.post_ok() as post_mock:
+            receipt, _ = self.printed(ftf.submit, valid_answers(), 1)
+        self.assertEqual(receipt["submission_id"], "s1")
+        self.assertEqual(set(post_mock.call_args.kwargs["json"]), {"team", "code", "track", "run", "answers"})
+        self.assertEqual(len(list(Path("answers").glob("answers_1_*.csv"))), 1)
+        saved = json.loads(next(Path("answers").glob("payload_1_*.json")).read_text(encoding="utf-8"))
+        self.assertIn("run_summary", saved)
+
+    def test_details_are_sent_when_enabled(self):
+        os.environ["FTF_SEND_DETAILS"] = "1"
+        self.full_run()
+        with self.post_ok() as post_mock:
+            self.printed(ftf.submit, valid_answers(), 1)
+        sent = post_mock.call_args.kwargs["json"]
+        for field in ("helper_version", "run_summary", "warnings"):
+            self.assertIn(field, sent)
+        self.assertNotIn("code_commit", sent)
+
+    def test_warnings_never_block_sending(self):
+        answers = valid_answers()
+        answers["A1"] = 99
+        self.full_run()
+        with self.post_ok() as post_mock:
+            receipt, out = self.printed(ftf.submit, answers, 1)
+        self.assertIn("Warning: A1: submitting 99", out)
+        self.assertEqual(receipt["submission_id"], "s1")
+        post_mock.assert_called_once()
+
+
+@unittest.skipUnless(shutil.which("git"), "git is not installed")
+class GitStateTests(InTempFolder):
+    """Real git repos in a temp folder; ask() is checked with the state they give."""
+
+    def git(self, *args):
+        subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                        "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
+
+    def make_repo(self):
+        self.git("init", "-q")
+        Path("agent.py").write_text("print('hi')\n", encoding="utf-8")
+        self.git("add", "agent.py")
+        self.git("commit", "-q", "-m", "agent")
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+
+    def ask_with_state(self, state):
+        # ask() as it runs after importing ftf in this folder; returns the trace and run log entry.
+        client = mock.MagicMock()
+        client.chat.completions.create.return_value = fake_completion("notes")
+        with mock.patch.dict(os.environ, ENV), mock.patch.object(ftf, "_openrouter", return_value=client), \
+                mock.patch.multiple(ftf, GIT_COMMIT=state[0], GIT_DIRTY=state[1]), \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
+            self.assertEqual(ftf.ask("A1", "research", "hi", MODEL, run=1), "notes")
+            trace = client.chat.completions.create.call_args.kwargs["extra_body"]["trace"]
+            logged = ftf.run_calls(1)[-1]
+        return trace, logged
+
+    def test_clean_commit(self):
+        sha = self.make_repo()
+        state = ftf._git_state()
+        self.assertEqual(state, (sha, False))
+        self.assertEqual(len(sha), 40)
+        trace, logged = self.ask_with_state(state)
+        self.assertEqual((trace["git_commit"], trace["git_dirty"]), (sha, False))
+        self.assertEqual((logged["git_commit"], logged["git_dirty"]), (sha, False))
+
+    def test_uncommitted_changes_are_dirty(self):
+        sha = self.make_repo()
+        Path("agent.py").write_text("print('changed')\n", encoding="utf-8")
+        state = ftf._git_state()
+        self.assertEqual(state, (sha, True))
+        trace, logged = self.ask_with_state(state)
+        self.assertEqual((trace["git_commit"], trace["git_dirty"]), (sha, True))
+        self.assertEqual((logged["git_commit"], logged["git_dirty"]), (sha, True))
+
+    def test_not_a_git_repo(self):
+        with mock.patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(Path.cwd().parent)}):
+            state = ftf._git_state()
+        self.assertEqual(state, (None, None))
+        trace, logged = self.ask_with_state(state)
+        self.assertEqual((trace["git_commit"], trace["git_dirty"]), (None, None))
+        self.assertEqual((logged["git_commit"], logged["git_dirty"]), (None, None))
+
+    def test_git_not_installed(self):
+        with mock.patch.object(ftf.subprocess, "run", side_effect=FileNotFoundError):
+            self.assertEqual(ftf._git_state(), (None, None))
+
+    def test_import_warns_once_without_a_commit(self):
+        with mock.patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(Path.cwd().parent)}):
+            result = subprocess.run([sys.executable, "-c", f"import sys; sys.path.insert(0, {str(ftf.HERE)!r}); import ftf"],
+                                    capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(result.stdout.count("Warning"), 1)
 
 
 if __name__ == "__main__":

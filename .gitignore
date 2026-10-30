@@ -11,3 +11,6 @@ data/yahoo_prices_1m.csv
 # AI-only submission backups and receipts, saved by ai_only/ftf.py
 answers/
 receipts/
+
+# Run logs written by ai_only/ftf.py ask()
+.ftf/
