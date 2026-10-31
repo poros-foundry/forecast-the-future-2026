@@ -30,6 +30,7 @@ request = dict(dataset="GLBX.MDP3", schema="ohlcv-1m", stype_in="raw_symbol",
                symbols=["ESZ6", "ZNZ6"], start="2016-11-07T00:00", end="2016-11-10T00:00")
 print(client.metadata.get_cost(**request))  # cost in US dollars; check before downloading
 bars = client.timeseries.get_range(**request).to_df()
+bars.to_csv("bars.csv")
 ```
 
 ## What to request
