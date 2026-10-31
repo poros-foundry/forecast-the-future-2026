@@ -24,6 +24,23 @@ These settings last until you close the terminal.
 
 **4. Submit for real.** Set `FTF_TEST_MODE=0` and submit between **12:00 GMT on 1 Nov and 22:00 GMT on 3 Nov**. Only your latest submission counts. Test mode works at any time.
 
+## Using the helper
+
+Run your scripts from the repo folder. If they aren't in `ai_only/`, add it to the path before importing:
+
+```python
+import sys
+sys.path.insert(0, "ai_only")
+import ftf
+
+questions = ftf.load_questions()  # all 25: id, part, text, unit, market_links
+model = ftf.APPROVED_MODELS["Claude Sonnet 5"]
+notes = ftf.ask("A1", "research", f"Summarise recent news on: {questions[0]['text']}", model, run=3, online=True)
+```
+
+- **Roles:** every `ask()` call takes one of `research`, `forecast`, `critique`, `aggregate`, `final` or `other`. Use `final` only for the call that produces the number you submit.
+- **Runs:** `run` labels one full attempt at all 25 questions. Use a new run number for each attempt, and submit with the same number. Try things out under a label such as `run="test"` before your final run, not after it: the last run you make before 22:00 is the one that's judged.
+
 ## Rules
 
 - Make every model call with `ftf.ask()` and give it a role. Use `role="final"` for the call that produces each submitted number.
@@ -101,6 +118,7 @@ A second final call for the same question also prints a warning when you make it
 ```python
 import ftf, ftf_tools
 
+model = ftf.APPROVED_MODELS["DeepSeek V4.1 Flash"]
 messages = [{"role": "user", "content": "Research A9. Use the tools if useful."}]
 for _ in range(5):  # cap the rounds
     reply = ftf.ask("A9", "research", messages, model, run=1, tools=ftf_tools.TOOLS, full=True)
