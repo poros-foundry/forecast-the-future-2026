@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
@@ -550,6 +551,45 @@ class CreditTests(unittest.TestCase):
         out, get = self.check(side_effect=requests.ConnectionError())
         get.assert_called_once()
         self.assertEqual(out, "")
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class EmailReadmeTests(InTempFolder):
+    def email(self, text, opened=True):
+        Path("README.md").write_text(text, encoding="utf-8")
+        with mock.patch.object(ftf.webbrowser, "open", return_value=opened) as open_mock, \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            url = ftf.email_readme("README.md")
+        open_mock.assert_called_once_with(url)
+        parsed = urllib.parse.urlparse(url)
+        fields = {k: v[0] for k, v in urllib.parse.parse_qs(parsed.query).items()}
+        return parsed, fields, out.getvalue()
+
+    def test_short_readme_goes_in_the_body(self):
+        text = "# Team Test\n\nWe use two models & web search; 100% via OpenRouter.\n"
+        parsed, fields, out = self.email(text)
+        self.assertEqual((parsed.scheme, parsed.path), ("mailto", "events@porosfoundry.ai"))
+        self.assertEqual(fields["subject"], "FTF US Midterms README team-test")
+        self.assertEqual(fields["body"], text)
+        self.assertNotIn("+", parsed.query)  # spaces encoded as %20, which every mail app reads
+        self.assertIn("Opened an email draft", out)
+        self.assertNotIn("attach", out)
+
+    def test_long_readme_asks_to_attach(self):
+        parsed, fields, out = self.email("word " * 1000)
+        self.assertLessEqual(len(urllib.parse.urlunparse(parsed)), ftf.MAILTO_LIMIT)
+        self.assertEqual(fields["body"], "Our README is attached (README.md).")
+        self.assertIn("attach README.md before sending", out)
+
+    def test_no_email_app_points_to_the_address(self):
+        _, _, out = self.email("short", opened=False)
+        self.assertIn("Could not open", out)
+        self.assertIn("email README.md to events@porosfoundry.ai yourself", out)
+
+    def test_missing_file_raises(self):
+        with mock.patch.object(ftf.webbrowser, "open") as open_mock, self.assertRaises(FileNotFoundError):
+            ftf.email_readme("nope.md")
+        open_mock.assert_not_called()
 
 
 @mock.patch.dict(os.environ, ENV, clear=True)

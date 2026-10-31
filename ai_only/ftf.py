@@ -29,14 +29,18 @@ import subprocess
 import sys
 import threading
 import time
+import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
 import requests
 from openai import APIStatusError, OpenAI
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
 DEFAULT_SUBMIT_URL = "https://porosfoundry.ai/api/ftf-2026/submit"
+EVENTS_EMAIL = "events@porosfoundry.ai"
+MAILTO_LIMIT = 2000  # longer mailto: links get cut off by some email apps
 # The models allowed for the event. OpenRouter rejects calls to any other model.
 APPROVED_MODELS = {
     "Claude Haiku 4.5": "anthropic/claude-haiku-4.5",
@@ -481,9 +485,30 @@ def _fallback(backup, reason, team):
     print(f"Submission not sent: {reason}.")
     print(f"Your answers are saved in {backup}. Resend them later with:")
     print(f"    python ai_only/ftf.py resubmit {backup}")
-    print(f"If the submission server is still down at the deadline, email {backup} to events@porosfoundry.ai "
+    print(f"If the submission server is still down at the deadline, email {backup} to {EVENTS_EMAIL} "
           f"before 22:00 GMT with the subject: FTF US Midterms submission {team}")
     return {"error": reason, "saved": str(backup)}
+
+
+def email_readme(path):
+    """Open a ready-to-send email with your README in your email app. Nothing is sent until you click Send.
+
+    path: your team's README file. Short READMEs go in the email body; for longer ones the
+    draft asks you to attach the file instead.
+    """
+    text = Path(path).read_text(encoding="utf-8")
+    subject = f"FTF US Midterms README {_env('TEAM_ID')}"
+    url = f"mailto:{EVENTS_EMAIL}?" + urlencode({"subject": subject, "body": text}, quote_via=quote)
+    attach = len(url) > MAILTO_LIMIT
+    if attach:
+        body = f"Our README is attached ({Path(path).name})."
+        url = f"mailto:{EVENTS_EMAIL}?" + urlencode({"subject": subject, "body": body}, quote_via=quote)
+    opened = webbrowser.open(url)
+    print(f"{'Opened' if opened else 'Could not open'} an email draft to {EVENTS_EMAIL} with the subject: {subject}")
+    if attach:
+        print(f"Your README is too long to paste into the email, so attach {path} before sending.")
+    print(f"If no draft appeared, email {path} to {EVENTS_EMAIL} yourself, with that subject, by 22:00 GMT on 3 Nov.")
+    return url
 
 
 def resubmit(path):

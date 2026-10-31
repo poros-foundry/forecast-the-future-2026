@@ -32,7 +32,7 @@ These settings last until you close the terminal.
 - Steer, don't dictate: changing how your agent forecasts is fine; telling it the answer ("set Texas to 55%") is not.
 - Use models and web search only through OpenRouter (`online=True` for search). The data pack is allowed, including its scripts in `code/` and `ftf_tools.py`, and so is your own local code. No other external APIs or data sources.
 - Your budget is $30 per team. Requests stop when it runs out. Test on a few questions before a full run. Check your remaining credit any time with `credit_left()`. `ask()` prints the cost of each call and warns when less than $10 is left.
-- Hand in a half-page README plus your code or a short note on the tools you used.
+- Email a half-page README to events@porosfoundry.ai by 22:00 GMT on 3 Nov, with the subject **FTF US Midterms README [team_id]**. List every data source and tool you used. Your code is optional; a short note on your tools is enough. `ftf.email_readme("path/to/README.md")` opens a ready-to-send draft in your email app.
 
 **Only these models are allowed.** OpenRouter rejects calls to any other model.
 
