@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
@@ -461,6 +462,36 @@ class SubmitCheckTests(ModelMock):
         self.assertIn("Warning: A1: submitting 99", out)
         self.assertEqual(receipt["submission_id"], "s1")
         post_mock.assert_called_once()
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class ThreadTests(InTempFolder):
+    RESEARCH_PER_QUESTION = 15
+
+    def test_ask_from_many_threads_keeps_every_call(self):
+        client = mock.MagicMock()
+        # Each reply echoes the prompt, so a final call's prompt is its JSON line.
+        client.chat.completions.create.side_effect = lambda **kw: fake_completion(kw["messages"][-1]["content"])
+        expected = valid_answers()
+
+        def one_question(q):
+            for _ in range(self.RESEARCH_PER_QUESTION):
+                ftf.ask(q, "research", "notes", MODEL, run=1)
+            ftf.ask(q, "final", final_line(expected[q], market=55 if q.startswith("A") else None), MODEL, run=1)
+
+        with mock.patch.object(ftf, "_openrouter", return_value=client), \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out, \
+                ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(one_question, ftf.QUESTION_IDS))
+            answers = ftf.answers_from_finals(1)
+        self.assertNotIn("Warning", out.getvalue())
+
+        total = len(ftf.QUESTION_IDS) * (self.RESEARCH_PER_QUESTION + 1)
+        self.assertEqual(len(ftf._calls), total)
+        logged = ftf.run_calls(1)  # read from the file
+        self.assertEqual(len(logged), total)
+        self.assertEqual(sorted(c["question"] for c in logged if c["role"] == "final"), sorted(ftf.QUESTION_IDS))
+        self.assertEqual(answers, expected)
 
 
 @unittest.skipUnless(shutil.which("git"), "git is not installed")

@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -64,7 +65,9 @@ FINAL_FIELDS = ("answer", "own_estimate", "reason")
 RUN_LOG_DIR = Path(".ftf") / "runs"  # one .jsonl file per run, in the folder you run from
 HERE = Path(__file__).resolve().parent
 _client = None
+_client_lock = threading.Lock()
 _calls = []  # every ask() call made in this process; also written to RUN_LOG_DIR
+_log_lock = threading.Lock()  # lets several threads call ask() without losing run log lines
 
 
 def _env(name):
@@ -76,10 +79,11 @@ def _env(name):
 
 def _openrouter():
     global _client
-    if _client is None:
-        # Retries network errors, rate limits and server errors with backoff; other errors fail at once.
-        _client = OpenAI(base_url=OPENROUTER_URL, api_key=_env("OPENROUTER_API_KEY"), max_retries=3)
-    return _client
+    with _client_lock:
+        if _client is None:
+            # Retries network errors, rate limits and server errors with backoff; other errors fail at once.
+            _client = OpenAI(base_url=OPENROUTER_URL, api_key=_env("OPENROUTER_API_KEY"), max_retries=3)
+        return _client
 
 
 def _git_state():
@@ -215,24 +219,25 @@ def _last_finals(calls):
 
 
 def _record(run, question_id, role, model, final, tool_request):
-    call = {"time": datetime.now(timezone.utc).isoformat(timespec="seconds"), "team": _env("TEAM_ID"),
-            "run": str(run), "question": question_id, "role": role, "model": model,
-            "git_commit": GIT_COMMIT, "git_dirty": GIT_DIRTY}
-    if role == "final":
-        if tool_request:
-            call["tool_request"] = True
-        else:
-            if question_id in _last_finals(run_calls(run)):
-                print(f"Warning: second final call for {question_id} in run {run}. That's allowed; the last one counts.")
-            call["final"] = final
-    _calls.append(call)
-    path = _run_log(run)
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(call) + "\n")
-    except OSError as e:
-        print(f"Warning: could not write the run log {path} ({e}). The call is only recorded in memory.")
+    with _log_lock:
+        call = {"time": datetime.now(timezone.utc).isoformat(timespec="seconds"), "team": _env("TEAM_ID"),
+                "run": str(run), "question": question_id, "role": role, "model": model,
+                "git_commit": GIT_COMMIT, "git_dirty": GIT_DIRTY}
+        if role == "final":
+            if tool_request:
+                call["tool_request"] = True
+            else:
+                if question_id in _last_finals(run_calls(run)):
+                    print(f"Warning: second final call for {question_id} in run {run}. That's allowed; the last one counts.")
+                call["final"] = final
+        _calls.append(call)
+        path = _run_log(run)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(call) + "\n")
+        except OSError as e:
+            print(f"Warning: could not write the run log {path} ({e}). The call is only recorded in memory.")
 
 
 def _final_answer(call, question_id):

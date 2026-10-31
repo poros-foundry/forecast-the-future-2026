@@ -81,7 +81,7 @@ ftf.submit(answers, run=3)                   # the real submission
 
 **Your git commit.** Every model call is tagged with your git commit, so commit your code before your final run. Uncommitted changes are flagged as dirty. The commit is read from the folder you run from, so run your scripts from inside your repo. If you use your own repo, add `.ftf/`, `answers/` and `receipts/` to its `.gitignore`; otherwise the files the helper writes there flag every later run as dirty.
 
-**The run log.** `ask()` records every call (time, question, role, model, git commit and the final JSON) in `.ftf/runs/<TEAM_ID>-run-<n>.jsonl` in the folder you run from. This lets `submit()` check your run even when your agent and your submission are separate scripts. Run both from the same folder. Research tagged `"general"` counts as research for every question.
+**The run log.** `ask()` records every call (time, question, role, model, git commit and the final JSON) in `.ftf/runs/<TEAM_ID>-run-<n>.jsonl` in the folder you run from. This lets `submit()` check your run even when your agent and your submission are separate scripts. Run both from the same folder. Research tagged `"general"` counts as research for every question. `ask()` is safe to call from several threads at once; no calls go missing from the log.
 
 **Warnings never block a submission.** Before sending, `submit()` prints a warning if:
 
