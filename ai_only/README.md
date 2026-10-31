@@ -51,6 +51,8 @@ These settings last until you close the terminal.
 
 Costs are rough estimates for a call of about 3,000 tokens in and 800 out, at OpenRouter prices on 28 Oct. `online=True` adds about $0.01–0.02 per call, and models that reason at length can cost several times more.
 
+Some models think before answering, and that thinking counts against `max_tokens`. If replies come back empty or cut off, raise `max_tokens` or cap thinking with `extra_body={"reasoning": {"effort": "low"}}` (Claude models don't accept `"none"`).
+
 ## Final replies and submitting
 
 Every `role="final"` reply must end with one line of JSON, with nothing after it. Part A:
