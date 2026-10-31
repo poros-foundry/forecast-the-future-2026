@@ -68,6 +68,10 @@ _client = None
 _client_lock = threading.Lock()
 _calls = []  # every ask() call made in this process; also written to RUN_LOG_DIR
 _log_lock = threading.Lock()  # lets several threads call ask() without losing run log lines
+LOW_CREDIT = 10  # dollars; warn when less than this is left
+CREDIT_CHECK_SECONDS = 60  # how often ask() checks the remaining credit
+_last_credit_check = -math.inf
+_credit_lock = threading.Lock()
 
 
 def _env(name):
@@ -103,6 +107,44 @@ def _git_state():
 GIT_COMMIT, GIT_DIRTY = _git_state()
 if GIT_COMMIT is None:
     print("Warning: no git commit found in this folder, so model calls won't be tagged with one. See ai_only/README.md")
+
+
+def _key_info():
+    # OpenRouter's usage and limit for your key, in dollars.
+    response = requests.get(f"{OPENROUTER_URL}/key", timeout=10,
+                            headers={"Authorization": f"Bearer {_env('OPENROUTER_API_KEY')}"})
+    response.raise_for_status()
+    return response.json()["data"]
+
+
+def credit_left():
+    """Print how much of your team's OpenRouter budget is used and return the dollars remaining."""
+    data = _key_info()
+    remaining = data.get("limit_remaining")
+    if data.get("limit") is None or remaining is None:
+        print(f"Used ${data['usage']:.2f}; this key has no spending limit")
+        return None
+    print(f"Used ${data['usage']:.2f} of ${data['limit']:.2f}, remaining ${remaining:.2f}")
+    if remaining < LOW_CREDIT:
+        print(f"Warning: less than ${LOW_CREDIT} of credit left. Requests stop when it runs out.")
+    return remaining
+
+
+def _check_credit():
+    # From ask(): checks the credit at most once every CREDIT_CHECK_SECONDS, and only warns
+    # when it's low. Never fails a model call.
+    global _last_credit_check
+    with _credit_lock:
+        if time.monotonic() - _last_credit_check < CREDIT_CHECK_SECONDS:
+            return
+        _last_credit_check = time.monotonic()
+    try:
+        remaining = _key_info()["limit_remaining"]
+    except Exception:
+        return
+    if isinstance(remaining, numbers.Real) and remaining < LOW_CREDIT:
+        print(f"Warning: only ${remaining:.2f} of credit left. Requests stop when it runs out. "
+              f"Check with credit_left().")
 
 
 def load_questions(path=HERE / "questions.json"):
@@ -144,6 +186,7 @@ def ask(question_id, role, messages, model, run, online=False, full=False, **kwa
     }
     if online:
         extra_body["plugins"] = [{"id": "web"}]
+    extra_body["usage"] = {"include": True}  # asks OpenRouter to report the call's cost
     extra_body.update(kwargs.pop("extra_body", {}))
 
     try:
@@ -156,7 +199,10 @@ def ask(question_id, role, messages, model, run, online=False, full=False, **kwa
         raise
 
     tokens = response.usage.total_tokens if response.usage else "?"
-    print(f"{datetime.now(timezone.utc):%H:%M:%S} {question_id} {role} {model} tokens={tokens}")
+    cost = getattr(response.usage, "cost", None)
+    cost = f" cost=${cost:.4f}" if isinstance(cost, numbers.Real) and not isinstance(cost, bool) else ""
+    print(f"{datetime.now(timezone.utc):%H:%M:%S} {question_id} {role} {model} tokens={tokens}{cost}")
+    _check_credit()
     message = response.choices[0].message
     tool_request = bool(message.tool_calls) and not message.content
     final = parse_final(message.content, question_id) if role == "final" and not tool_request else None

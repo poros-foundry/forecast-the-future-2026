@@ -31,7 +31,7 @@ These settings last until you close the terminal.
 - **Integrity:** Your submission must be one complete run: the last run you made before 22:00, covering all 25 questions from research to final. For each question, the answer must match the last final call. Judges can see every run you made.
 - Steer, don't dictate: changing how your agent forecasts is fine; telling it the answer ("set Texas to 55%") is not.
 - Use models and web search only through OpenRouter (`online=True` for search). The data pack is allowed, including its scripts in `code/` and `ftf_tools.py`, and so is your own local code. No other external APIs or data sources.
-- Your budget is $30 per team. Requests stop when it runs out. Test on a few questions before a full run.
+- Your budget is $30 per team. Requests stop when it runs out. Test on a few questions before a full run. Check your remaining credit any time with `credit_left()`. `ask()` prints the cost of each call and warns when less than $10 is left.
 - Hand in a half-page README plus your code or a short note on the tools you used.
 
 **Only these models are allowed.** OpenRouter rejects calls to any other model.

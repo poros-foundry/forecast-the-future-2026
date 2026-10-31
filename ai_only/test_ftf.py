@@ -56,6 +56,9 @@ class InTempFolder(unittest.TestCase):
         calls = mock.patch.object(ftf, "_calls", [])
         calls.start()
         self.addCleanup(calls.stop)
+        credit = mock.patch.object(ftf, "_check_credit")  # no credit lookups from ask()
+        self.check_credit = credit.start()
+        self.addCleanup(credit.stop)
 
 
 @mock.patch.dict(os.environ, ENV, clear=True)
@@ -100,6 +103,22 @@ class AskTests(InTempFolder):
         message = ftf.ask("A1", "research", "hi", "some/model", run=1, tools=tools, full=True)
         self.assertIs(message, self.client.chat.completions.create.return_value.choices[0].message)
         self.assertEqual(self.client.chat.completions.create.call_args.kwargs["tools"], tools)
+
+    def test_asks_for_and_prints_cost(self):
+        response = fake_completion("42")
+        response.usage.cost = 0.01234
+        self.client.chat.completions.create.return_value = response
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            ftf.ask("A1", "research", "hi", MODEL, run=1)
+        body = self.client.chat.completions.create.call_args.kwargs["extra_body"]
+        self.assertEqual(body["usage"], {"include": True})
+        self.assertIn("tokens=10 cost=$0.0123", out.getvalue())
+        self.check_credit.assert_called_once()
+
+    def test_no_cost_in_response_prints_tokens_only(self):
+        with mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            ftf.ask("A1", "research", "hi", MODEL, run=1)  # MagicMock usage has no numeric cost
+        self.assertIn("tokens=10\n", out.getvalue())
 
     def test_online_adds_web_search(self):
         ftf.ask("general", "research", "hi", "some/model", run=1, online=True)
@@ -462,6 +481,75 @@ class SubmitCheckTests(ModelMock):
         self.assertIn("Warning: A1: submitting 99", out)
         self.assertEqual(receipt["submission_id"], "s1")
         post_mock.assert_called_once()
+
+
+def key_response(usage, limit, remaining):
+    response = mock.MagicMock(status_code=200)
+    response.json.return_value = {"data": {"usage": usage, "limit": limit, "limit_remaining": remaining}}
+    return response
+
+
+@mock.patch.dict(os.environ, ENV, clear=True)
+class CreditTests(unittest.TestCase):
+    def setUp(self):
+        last = mock.patch.object(ftf, "_last_credit_check", -math.inf)
+        last.start()
+        self.addCleanup(last.stop)
+
+    def credit_left(self, response):
+        with mock.patch.object(ftf.requests, "get", return_value=response) as get, \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            remaining = ftf.credit_left()
+        return remaining, out.getvalue(), get
+
+    def test_credit_left_prints_and_returns_remaining(self):
+        remaining, out, get = self.credit_left(key_response(12.5, 30, 17.5))
+        self.assertEqual(remaining, 17.5)
+        self.assertIn("Used $12.50 of $30.00, remaining $17.50", out)
+        self.assertNotIn("Warning", out)
+        self.assertEqual(get.call_args.args[0], "https://openrouter.ai/api/v1/key")
+        self.assertEqual(get.call_args.kwargs["headers"], {"Authorization": "Bearer test-key"})
+
+    def test_credit_left_warns_below_10(self):
+        remaining, out, _ = self.credit_left(key_response(21, 30, 9))
+        self.assertEqual(remaining, 9)
+        self.assertIn("Warning: less than $10 of credit left", out)
+
+    def test_credit_left_without_a_limit(self):
+        remaining, out, _ = self.credit_left(key_response(3, None, None))
+        self.assertIsNone(remaining)
+        self.assertIn("no spending limit", out)
+
+    def test_credit_left_raises_on_http_error(self):
+        response = mock.MagicMock(status_code=401)
+        response.raise_for_status.side_effect = requests.HTTPError("401")
+        with mock.patch.object(ftf.requests, "get", return_value=response), self.assertRaises(requests.HTTPError):
+            ftf.credit_left()
+
+    def check(self, **get_kwargs):
+        with mock.patch.object(ftf.requests, "get", **get_kwargs) as get, \
+                mock.patch("sys.stdout", new_callable=io.StringIO) as out:
+            ftf._check_credit()
+        return out.getvalue(), get
+
+    def test_ask_check_warns_only_when_low(self):
+        out, _ = self.check(return_value=key_response(5, 30, 25))
+        self.assertEqual(out, "")
+        ftf._last_credit_check = -math.inf
+        out, _ = self.check(return_value=key_response(22.5, 30, 7.5))
+        self.assertIn("Warning: only $7.50 of credit left", out)
+
+    def test_ask_check_runs_at_most_once_a_minute(self):
+        with mock.patch.object(ftf.requests, "get", return_value=key_response(22.5, 30, 7.5)) as get, \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
+            for _ in range(5):
+                ftf._check_credit()
+        get.assert_called_once()
+
+    def test_ask_check_never_raises(self):
+        out, get = self.check(side_effect=requests.ConnectionError())
+        get.assert_called_once()
+        self.assertEqual(out, "")
 
 
 @mock.patch.dict(os.environ, ENV, clear=True)
